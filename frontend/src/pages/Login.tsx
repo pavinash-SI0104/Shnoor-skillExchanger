@@ -1,16 +1,55 @@
 import { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../config/firebase";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("Email:", email);
-    console.log("Password:", password);
+    try {
+      setLoading(true);
 
-    alert("Login button clicked!");
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      const user = userCredential.user;
+
+      console.log("Logged in user:", user);
+
+      // Get Firebase ID token
+      const token = await user.getIdToken();
+
+      console.log("Firebase ID Token:", token);
+
+      alert("Login successful!");
+
+      window.location.href = "/dashboard";
+    } catch (error: any) {
+      console.error("Login error:", error);
+
+      if (
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/user-not-found"
+      ) {
+        alert("Invalid email or password.");
+      } else if (error.code === "auth/invalid-email") {
+        alert("Please enter a valid email address.");
+      } else if (error.code === "auth/too-many-requests") {
+        alert("Too many attempts. Please try again later.");
+      } else {
+        alert("Login failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -22,7 +61,11 @@ function Login() {
             Skill<span>Exchanger</span>
           </div>
 
-          <h1>Exchange Skills.<br />Grow Together.</h1>
+          <h1>
+            Exchange Skills.
+            <br />
+            Grow Together.
+          </h1>
 
           <p>
             Share what you know, learn what you love,
@@ -77,8 +120,12 @@ function Login() {
                 <a href="#">Forgot password?</a>
               </div>
 
-              <button type="submit" className="login-button">
-                Login
+              <button
+                type="submit"
+                className="login-button"
+                disabled={loading}
+              >
+                {loading ? "Logging in..." : "Login"}
               </button>
 
             </form>

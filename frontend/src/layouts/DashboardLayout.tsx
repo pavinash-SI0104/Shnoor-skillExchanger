@@ -1,6 +1,18 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { auth } from "../config/firebase";
 
 function DashboardLayout() {
+  const [userName, setUserName] = useState("User");
+
+  useEffect(() => {
+    const user = auth.currentUser;
+
+    if (user) {
+      setUserName(user.displayName || "User");
+    }
+  }, []);
+
   return (
     <div className="dashboard-layout">
 
@@ -101,7 +113,7 @@ function DashboardLayout() {
               </div>
 
               <div>
-                <strong>Supriya</strong>
+                <strong>{userName}</strong>
                 <small>Skill Learner</small>
               </div>
             </div>

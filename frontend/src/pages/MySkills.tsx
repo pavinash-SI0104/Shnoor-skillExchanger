@@ -1,115 +1,164 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { auth } from "../config/firebase";
 
 interface Skill {
-  id: number;
+  id: string;
   name: string;
   type: "teach" | "learn";
   level: string;
 }
 
 function MySkills() {
-
   const [showForm, setShowForm] = useState(false);
 
   const [skillName, setSkillName] = useState("");
   const [skillType, setSkillType] =
     useState<"teach" | "learn">("teach");
+
   const [skillLevel, setSkillLevel] =
     useState("Beginner");
 
   const [editingSkillId, setEditingSkillId] =
-    useState<number | null>(null);
+    useState<string | null>(null);
 
-  const [skills, setSkills] = useState<Skill[]>([
-    {
-      id: 1,
-      name: "Python",
-      type: "teach",
-      level: "Advanced"
-    },
-    {
-      id: 2,
-      name: "React",
-      type: "teach",
-      level: "Intermediate"
-    },
-    {
-      id: 3,
-      name: "SQL",
-      type: "teach",
-      level: "Intermediate"
-    },
-    {
-      id: 4,
-      name: "UI/UX Design",
-      type: "learn",
-      level: "Beginner"
-    },
-    {
-      id: 5,
-      name: "Machine Learning",
-      type: "learn",
-      level: "Beginner"
+  const [skills, setSkills] = useState<Skill[]>([]);
+
+  const [loading, setLoading] = useState(true);
+
+  // =========================
+  // LOAD SKILLS
+  // =========================
+
+  useEffect(() => {
+    loadSkills();
+  }, []);
+
+  const loadSkills = async () => {
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        console.log("No logged-in user");
+        return;
+      }
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        "http://localhost:5000/api/users/skills",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+
+      const teachingSkills: Skill[] =
+        (data.skillsToTeach || []).map((skill: any) => ({
+          ...skill,
+          type: "teach",
+        }));
+
+      const learningSkills: Skill[] =
+        (data.skillsToLearn || []).map((skill: any) => ({
+          ...skill,
+          type: "learn",
+        }));
+
+      setSkills([
+        ...teachingSkills,
+        ...learningSkills,
+      ]);
+    } catch (error) {
+      console.error("Failed to load skills:", error);
+    } finally {
+      setLoading(false);
     }
-  ]);
-
+  };
 
   // =========================
   // ADD / UPDATE SKILL
   // =========================
 
-  const handleSaveSkill = () => {
-
+  const handleSaveSkill = async () => {
     if (skillName.trim() === "") {
       alert("Please enter a skill name.");
       return;
     }
 
-    // EDIT EXISTING SKILL
+    // Editing will be connected in the next step
     if (editingSkillId !== null) {
+      alert("Skill editing will be connected next.");
+      return;
+    }
 
-      setSkills(
-        skills.map((skill) =>
-          skill.id === editingSkillId
-            ? {
-                ...skill,
-                name: skillName,
-                type: skillType,
-                level: skillLevel
-              }
-            : skill
-        )
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        alert("Please login first.");
+        return;
+      }
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        "http://localhost:5000/api/users/skills",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: skillName,
+            type: skillType,
+            level: skillLevel,
+          }),
+        }
       );
 
-      alert("Skill updated successfully!");
+      const data = await response.json();
 
-    }
-
-    // ADD NEW SKILL
-    else {
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
 
       const newSkill: Skill = {
-        id: Date.now(),
-        name: skillName,
+        id: data.skill.id,
+        name: data.skill.name,
         type: skillType,
-        level: skillLevel
+        level: data.skill.level,
       };
 
-      setSkills([...skills, newSkill]);
+      setSkills((currentSkills) => [
+        ...currentSkills,
+        newSkill,
+      ]);
 
       alert("Skill added successfully!");
+
+      resetForm();
+    } catch (error: any) {
+      console.error("Add skill error:", error);
+
+      alert(
+        error.message || "Failed to add skill."
+      );
     }
-
-    resetForm();
   };
-
 
   // =========================
   // EDIT SKILL
   // =========================
 
   const handleEditSkill = (skill: Skill) => {
-
     setSkillName(skill.name);
     setSkillType(skill.type);
     setSkillLevel(skill.level);
@@ -119,13 +168,11 @@ function MySkills() {
     setShowForm(true);
   };
 
-
   // =========================
   // DELETE SKILL
   // =========================
 
-  const handleDeleteSkill = (id: number) => {
-
+  const handleDeleteSkill = async (id: string) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this skill?"
     );
@@ -134,20 +181,53 @@ function MySkills() {
       return;
     }
 
-    setSkills(
-      skills.filter((skill) => skill.id !== id)
-    );
+    try {
+      const user = auth.currentUser;
 
-    alert("Skill deleted successfully!");
+      if (!user) {
+        alert("Please login first.");
+        return;
+      }
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `http://localhost:5000/api/users/skills/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+
+      setSkills((currentSkills) =>
+        currentSkills.filter(
+          (skill) => skill.id !== id
+        )
+      );
+
+      alert("Skill deleted successfully!");
+    } catch (error: any) {
+      console.error("Delete skill error:", error);
+
+      alert(
+        error.message || "Failed to delete skill."
+      );
+    }
   };
-
 
   // =========================
   // RESET FORM
   // =========================
 
   const resetForm = () => {
-
     setSkillName("");
     setSkillType("teach");
     setSkillLevel("Beginner");
@@ -157,6 +237,9 @@ function MySkills() {
     setShowForm(false);
   };
 
+  // =========================
+  // FILTER SKILLS
+  // =========================
 
   const teachingSkills = skills.filter(
     (skill) => skill.type === "teach"
@@ -166,6 +249,29 @@ function MySkills() {
     (skill) => skill.type === "learn"
   );
 
+  // =========================
+  // LOADING
+  // =========================
+
+  if (loading) {
+    return (
+      <div>
+        <div className="page-heading">
+          <div>
+            <h1>My Skills</h1>
+
+            <p>
+              Loading your skills...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================
+  // UI
+  // =========================
 
   return (
     <div>
@@ -185,24 +291,22 @@ function MySkills() {
 
         </div>
 
-
         <button
           className="primary-button"
           onClick={() => {
-
             if (showForm) {
               resetForm();
             } else {
               setShowForm(true);
             }
-
           }}
         >
-          {showForm ? "Cancel" : "+ Add Skill"}
+          {showForm
+            ? "Cancel"
+            : "+ Add Skill"}
         </button>
 
       </div>
-
 
       {/* ADD / EDIT FORM */}
 
@@ -215,7 +319,6 @@ function MySkills() {
               ? "Edit Skill"
               : "Add a Skill"}
           </h2>
-
 
           <div className="form-group">
 
@@ -234,7 +337,6 @@ function MySkills() {
 
           </div>
 
-
           <div className="form-group">
 
             <label>
@@ -245,7 +347,9 @@ function MySkills() {
               value={skillType}
               onChange={(e) =>
                 setSkillType(
-                  e.target.value as "teach" | "learn"
+                  e.target.value as
+                    | "teach"
+                    | "learn"
                 )
               }
             >
@@ -262,7 +366,6 @@ function MySkills() {
 
           </div>
 
-
           <div className="form-group">
 
             <label>
@@ -276,15 +379,25 @@ function MySkills() {
               }
             >
 
-              <option>Beginner</option>
-              <option>Intermediate</option>
-              <option>Advanced</option>
-              <option>Expert</option>
+              <option>
+                Beginner
+              </option>
+
+              <option>
+                Intermediate
+              </option>
+
+              <option>
+                Advanced
+              </option>
+
+              <option>
+                Expert
+              </option>
 
             </select>
 
           </div>
-
 
           <button
             className="primary-button"
@@ -296,14 +409,11 @@ function MySkills() {
           </button>
 
         </div>
-
       )}
-
 
       {/* SKILLS GRID */}
 
       <div className="skills-grid">
-
 
         {/* TEACHING SKILLS */}
 
@@ -318,13 +428,13 @@ function MySkills() {
               </h2>
 
               <p>
-                Skills you can share with other users.
+                Skills you can share with
+                other users.
               </p>
 
             </div>
 
           </div>
-
 
           <div className="skill-list">
 
@@ -347,7 +457,6 @@ function MySkills() {
                     💻
                   </div>
 
-
                   <div className="skill-info">
 
                     <strong>
@@ -360,7 +469,6 @@ function MySkills() {
 
                   </div>
 
-
                   <div className="skill-actions">
 
                     <button
@@ -372,11 +480,12 @@ function MySkills() {
                       Edit
                     </button>
 
-
                     <button
                       className="delete-button"
                       onClick={() =>
-                        handleDeleteSkill(skill.id)
+                        handleDeleteSkill(
+                          skill.id
+                        )
                       }
                     >
                       Delete
@@ -394,7 +503,6 @@ function MySkills() {
 
         </div>
 
-
         {/* LEARNING SKILLS */}
 
         <div className="dashboard-card">
@@ -408,13 +516,13 @@ function MySkills() {
               </h2>
 
               <p>
-                Skills you are interested in learning.
+                Skills you are interested
+                in learning.
               </p>
 
             </div>
 
           </div>
-
 
           <div className="skill-list">
 
@@ -437,7 +545,6 @@ function MySkills() {
                     🎯
                   </div>
 
-
                   <div className="skill-info">
 
                     <strong>
@@ -450,7 +557,6 @@ function MySkills() {
 
                   </div>
 
-
                   <div className="skill-actions">
 
                     <button
@@ -462,11 +568,12 @@ function MySkills() {
                       Edit
                     </button>
 
-
                     <button
                       className="delete-button"
                       onClick={() =>
-                        handleDeleteSkill(skill.id)
+                        handleDeleteSkill(
+                          skill.id
+                        )
                       }
                     >
                       Delete

@@ -1,31 +1,95 @@
 import { useState } from "react";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "../config/firebase";
 
 function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
-      return;
+  if (password !== confirmPassword) {
+    alert("Passwords do not match!");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    // Create Firebase Authentication account
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    const user = userCredential.user;
+
+    // Save display name in Firebase Authentication
+    await updateProfile(user, {
+      displayName: name,
+    });
+
+    // Get Firebase ID token
+    const token = await user.getIdToken();
+
+    // Create user profile in Firestore through backend
+    const response = await fetch(
+      "http://localhost:5000/api/users/profile",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name,
+          email,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Profile creation failed:", data);
+      throw new Error(
+        data.message || "Failed to create user profile"
+      );
     }
 
-    console.log("Name:", name);
-    console.log("Email:", email);
-    console.log("Password:", password);
+    console.log("Firebase user:", user);
+    console.log("Firestore profile:", data.user);
 
-    alert("Registration button clicked!");
-  };
+    alert("Account created successfully!");
 
+    window.location.href = "/login";
+  } catch (error: any) {
+    console.error("Registration error:", error);
+
+    if (error.code === "auth/email-already-in-use") {
+      alert("This email is already registered.");
+    } else if (error.code === "auth/weak-password") {
+      alert("Password should be at least 6 characters.");
+    } else if (error.code === "auth/invalid-email") {
+      alert("Please enter a valid email address.");
+    } else {
+      alert(
+        error.message ||
+          "Registration failed. Please try again."
+      );
+    }
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="login-page">
       <div className="login-container">
-
-        {/* Left Section */}
         <div className="login-left">
           <div className="brand">
             Skill<span>Exchanger</span>
@@ -43,7 +107,6 @@ function Register() {
           </p>
         </div>
 
-        {/* Right Section */}
         <div className="login-right">
           <div className="login-box">
 
@@ -55,7 +118,6 @@ function Register() {
 
             <form onSubmit={handleSubmit}>
 
-              {/* Name */}
               <div className="form-group">
                 <label htmlFor="name">Full Name</label>
 
@@ -69,7 +131,6 @@ function Register() {
                 />
               </div>
 
-              {/* Email */}
               <div className="form-group">
                 <label htmlFor="register-email">Email</label>
 
@@ -83,7 +144,6 @@ function Register() {
                 />
               </div>
 
-              {/* Password */}
               <div className="form-group">
                 <label htmlFor="register-password">Password</label>
 
@@ -97,7 +157,6 @@ function Register() {
                 />
               </div>
 
-              {/* Confirm Password */}
               <div className="form-group">
                 <label htmlFor="confirm-password">
                   Confirm Password
@@ -115,12 +174,12 @@ function Register() {
                 />
               </div>
 
-              {/* Register Button */}
               <button
                 type="submit"
                 className="login-button"
+                disabled={loading}
               >
-                Create Account
+                {loading ? "Creating Account..." : "Create Account"}
               </button>
 
             </form>
