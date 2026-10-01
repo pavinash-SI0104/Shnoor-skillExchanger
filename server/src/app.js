@@ -5,6 +5,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
 const { db } = require("./config/firebase");
+const authenticateUser = require("./middleware/auth");
 
 const app = express();
 
@@ -63,6 +64,13 @@ app.get("/api/health/firebase", async (req, res) => {
       error: error.message,
     });
   }
+});
+app.get("/api/auth/me", authenticateUser, (req, res) => {
+  res.json({
+    success: true,
+    message: "User authenticated successfully",
+    user: req.user,
+  });
 });
 
 module.exports = app;
