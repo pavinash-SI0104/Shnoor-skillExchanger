@@ -771,6 +771,194 @@ app.patch(
     }
   }
 );
+// Create or get an authorized chat conversation
+app.post("/api/users/conversations", authenticateUser, async (req, res) => {
+  try {
+    const { requestId } = req.body;
+    const uid = req.user.uid;
+
+    if (!requestId) {
+      return res.status(400).json({
+        success: false,
+        message: "Request ID is required",
+      });
+    }
+
+    const requestRef = db.collection("exchangeRequests").doc(requestId);
+    const requestSnapshot = await requestRef.get();
+
+    if (!requestSnapshot.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Exchange request not found",
+      });
+    }
+
+    const request = requestSnapshot.data();
+
+    // Chat is allowed only for accepted requests
+    if (request.status !== "accepted") {
+      return res.status(403).json({
+        success: false,
+        message: "Chat is available only after the request is accepted",
+      });
+    }
+
+    // Only the sender or receiver can create/access the conversation
+    if (request.senderId !== uid && request.receiverId !== uid) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to access this conversation",
+      });
+    }
+
+    const participantIds = [request.senderId, request.receiverId].sort();
+
+    // Deterministic ID prevents duplicate conversations
+    const conversationId = participantIds.join("_");
+
+    const conversationRef = db
+      .collection("conversations")
+      .doc(conversationId);
+
+    const existingConversation = await conversationRef.get();
+
+    if (existingConversation.exists) {
+      return res.status(200).json({
+        success: true,
+        conversation: existingConversation.data(),
+      });
+    }
+
+    const now = new Date().toISOString();
+
+    const conversation = {
+      id: conversationId,
+      requestId: request.id,
+
+      participants: participantIds,
+
+      participantNames: {
+        [request.senderId]: request.senderName,
+        [request.receiverId]: request.receiverName,
+      },
+
+      skillId: request.skillId,
+      skillName: request.skillName,
+
+      lastMessage: "",
+      unreadCounts: {
+        [request.senderId]: 0,
+        [request.receiverId]: 0,
+      },
+      updatedAt: now,
+      createdAt: now,
+    };
+
+    await conversationRef.set(conversation);
+
+    return res.status(201).json({
+      success: true,
+      conversation,
+    });
+  } catch (error) {
+    console.error("Create conversation error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create conversation",
+    });
+  }
+});
+// Get conversations for the current user
+app.get("/api/users/conversations", authenticateUser, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+
+    const snapshot = await db
+      .collection("conversations")
+      .where("participants", "array-contains", uid)
+      .get();
+
+    const conversations = snapshot.docs
+      .map((doc) => doc.data())
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() -
+          new Date(a.updatedAt).getTime()
+      );
+
+    return res.status(200).json({
+      success: true,
+      conversations,
+    });
+  } catch (error) {
+    console.error("Get conversations error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch conversations",
+    });
+  }
+});
+// Get messages for an authorized conversation
+app.get(
+  "/api/users/conversations/:conversationId/messages",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const { conversationId } = req.params;
+      const uid = req.user.uid;
+
+      const conversationRef = db
+        .collection("conversations")
+        .doc(conversationId);
+
+      const conversationSnapshot = await conversationRef.get();
+
+      if (!conversationSnapshot.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "Conversation not found",
+        });
+      }
+
+      const conversation = conversationSnapshot.data();
+
+      if (!conversation.participants?.includes(uid)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to access these messages",
+        });
+      }
+
+      const messagesSnapshot = await db
+        .collection("messages")
+        .where("conversationId", "==", conversationId)
+        .get();
+
+      const messages = messagesSnapshot.docs
+        .map((doc) => doc.data())
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() -
+            new Date(b.createdAt).getTime()
+        );
+
+      return res.status(200).json({
+        success: true,
+        messages,
+      });
+    } catch (error) {
+      console.error("Get conversation messages error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch messages",
+      });
+    }
+  }
+);
 
 // ==============================
 // CREATE SESSION
@@ -1340,5 +1528,157 @@ app.get("/api/users/matches", authenticateUser, async (req, res) => {
     });
   }
 });
+// ==============================
+// GET USER CONVERSATIONS
+// ==============================
 
+app.get(
+  "/api/users/conversations",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const currentUid = req.user.uid;
+
+      const snapshot = await db
+        .collection("conversations")
+        .get();
+
+      const conversations = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        .filter((conversation) =>
+          conversation.participants?.includes(currentUid)
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt || 0).getTime() -
+            new Date(a.updatedAt || 0).getTime()
+        );
+
+      return res.status(200).json({
+        success: true,
+        conversations,
+      });
+    } catch (error) {
+      console.error("Get conversations error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch conversations",
+      });
+    }
+  }
+);
+
+// ==============================
+// GET CONVERSATION MESSAGES
+// ==============================
+
+app.get(
+  "/api/users/conversations/:conversationId/messages",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const currentUid = req.user.uid;
+      const { conversationId } = req.params;
+
+      const conversationDoc = await db
+        .collection("conversations")
+        .doc(conversationId)
+        .get();
+
+      if (!conversationDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "Conversation not found",
+        });
+      }
+
+      const conversation = conversationDoc.data();
+
+      if (!conversation.participants?.includes(currentUid)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to access this conversation",
+        });
+      }
+
+      const snapshot = await db
+        .collection("messages")
+        .where("conversationId", "==", conversationId)
+        .get();
+
+      const messages = snapshot.docs
+        .map((doc) => doc.data())
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() -
+            new Date(b.createdAt).getTime()
+        );
+
+      return res.status(200).json({
+        success: true,
+        messages,
+      });
+    } catch (error) {
+      console.error("Get conversation messages error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch messages",
+      });
+    }
+  }
+);
+// Mark conversation messages as read
+app.patch(
+  "/api/users/conversations/:conversationId/read",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const { conversationId } = req.params;
+      const uid = req.user.uid;
+
+      const conversationRef = db
+        .collection("conversations")
+        .doc(conversationId);
+
+      const conversationSnapshot = await conversationRef.get();
+
+      if (!conversationSnapshot.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "Conversation not found",
+        });
+      }
+
+      const conversation = conversationSnapshot.data();
+
+      if (!conversation.participants?.includes(uid)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to update this conversation",
+        });
+      }
+
+      await conversationRef.update({
+        [`unreadCounts.${uid}`]: 0,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Conversation marked as read",
+      });
+    } catch (error) {
+      console.error("Mark conversation read error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to mark conversation as read",
+      });
+    }
+  }
+);
 module.exports = app;
