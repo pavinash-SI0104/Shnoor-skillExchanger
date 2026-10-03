@@ -1,52 +1,51 @@
-import { useState } from "react";
+
+import { useState, type FormEvent } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../config/firebase";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const redirectTo =
+    (location.state as { from?: { pathname?: string } } | null)
+      ?.from?.pathname || "/dashboard";
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
 
     try {
       setLoading(true);
-
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      const user = userCredential.user;
-
-      console.log("Logged in user:", user);
-
-      // Get Firebase ID token
-      const token = await user.getIdToken();
-
-      console.log("Firebase ID Token:", token);
-
-      alert("Login successful!");
-
-      window.location.href = "/dashboard";
-    } catch (error: any) {
-      console.error("Login error:", error);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      navigate(redirectTo, { replace: true });
+    } catch (err: unknown) {
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? String(err.code)
+          : "";
 
       if (
-        error.code === "auth/invalid-credential" ||
-        error.code === "auth/wrong-password" ||
-        error.code === "auth/user-not-found"
+        code === "auth/invalid-credential" ||
+        code === "auth/wrong-password" ||
+        code === "auth/user-not-found"
       ) {
-        alert("Invalid email or password.");
-      } else if (error.code === "auth/invalid-email") {
-        alert("Please enter a valid email address.");
-      } else if (error.code === "auth/too-many-requests") {
-        alert("Too many attempts. Please try again later.");
+        setError("Invalid email or password.");
+      } else if (code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+      } else if (code === "auth/too-many-requests") {
+        setError("Too many attempts. Please try again later.");
       } else {
-        alert("Login failed. Please try again.");
+        setError("Login failed. Please try again.");
       }
+
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
@@ -55,7 +54,6 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-container">
-
         <div className="login-left">
           <div className="brand">
             Skill<span>Exchanger</span>
@@ -74,50 +72,43 @@ function Login() {
         </div>
 
         <div className="login-right">
-
           <div className="login-box">
-
             <h2>Welcome Back 👋</h2>
-
             <p className="login-subtitle">
               Sign in to continue to Skill Exchanger
             </p>
 
-            <form onSubmit={handleSubmit}>
+            {error && (
+              <div className="error-message" role="alert">
+                {error}
+              </div>
+            )}
 
+            <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="email">Email</label>
-
                 <input
                   id="email"
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
                   required
                 />
               </div>
 
               <div className="form-group">
                 <label htmlFor="password">Password</label>
-
                 <input
                   id="password"
                   type="password"
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="current-password"
                   required
                 />
-              </div>
-
-              <div className="login-options">
-                <label>
-                  <input type="checkbox" />
-                  Remember me
-                </label>
-
-                <a href="#">Forgot password?</a>
               </div>
 
               <button
@@ -127,18 +118,13 @@ function Login() {
               >
                 {loading ? "Logging in..." : "Login"}
               </button>
-
             </form>
 
             <p className="register-text">
-              Don't have an account?
-              <a href="/register"> Create an account</a>
+              Don't have an account? <Link to="/register">Create an account</Link>
             </p>
-
           </div>
-
         </div>
-
       </div>
     </div>
   );

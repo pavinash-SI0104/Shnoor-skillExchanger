@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { auth } from "../config/firebase";
+import api from "../api/api";
 
 interface Skill {
   id: string;
@@ -9,21 +10,24 @@ interface Skill {
 }
 
 function MySkills() {
-  const [showForm, setShowForm] = useState(false);
+  const [skills, setSkills] = useState<Skill[]>([]);
 
+  const [showForm, setShowForm] = useState(false);
   const [skillName, setSkillName] = useState("");
   const [skillType, setSkillType] =
     useState<"teach" | "learn">("teach");
-
   const [skillLevel, setSkillLevel] =
     useState("Beginner");
 
-  const [editingSkillId, setEditingSkillId] =
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] =
+    useState<string | null>(null);
+  const [deleteId, setDeleteId] =
     useState<string | null>(null);
 
-  const [skills, setSkills] = useState<Skill[]>([]);
-
-  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   // =========================
   // LOAD SKILLS
@@ -35,191 +39,170 @@ function MySkills() {
 
   const loadSkills = async () => {
     try {
-      const user = auth.currentUser;
+      setLoading(true);
+      setError("");
 
-      if (!user) {
-        console.log("No logged-in user");
+      if (!auth.currentUser) {
+        setError("Please log in to view your skills.");
         return;
       }
 
-      const token = await user.getIdToken();
+      const response = await api.get("/users/skills");
+      const data = response.data || {};
 
-      const response = await fetch(
-        "http://localhost:5000/api/users/skills",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const teachingSkills: Skill[] = (
+        data.skillsToTeach || []
+      ).map((skill: any) => ({
+        id: skill.id,
+        name: skill.name,
+        type: "teach",
+        level: skill.level,
+      }));
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message);
-      }
-
-      const teachingSkills: Skill[] =
-        (data.skillsToTeach || []).map((skill: any) => ({
-          ...skill,
-          type: "teach",
-        }));
-
-      const learningSkills: Skill[] =
-        (data.skillsToLearn || []).map((skill: any) => ({
-          ...skill,
-          type: "learn",
-        }));
+      const learningSkills: Skill[] = (
+        data.skillsToLearn || []
+      ).map((skill: any) => ({
+        id: skill.id,
+        name: skill.name,
+        type: "learn",
+        level: skill.level,
+      }));
 
       setSkills([
         ...teachingSkills,
         ...learningSkills,
       ]);
-    } catch (error) {
-      console.error("Failed to load skills:", error);
+    } catch (err: any) {
+      console.error("Failed to load skills:", err);
+
+      setError(
+        err?.response?.data?.message ||
+          "Failed to load your skills."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   // =========================
-  // ADD / UPDATE SKILL
+  // ADD SKILL
   // =========================
 
   const handleSaveSkill = async () => {
-    if (skillName.trim() === "") {
-      alert("Please enter a skill name.");
-      return;
-    }
+    setMessage("");
+    setError("");
 
-    // Editing will be connected in the next step
-    if (editingSkillId !== null) {
-      alert("Skill editing will be connected next.");
+    const name = skillName.trim();
+
+    if (!name) {
+      setError("Please enter a skill name.");
       return;
     }
 
     try {
-      const user = auth.currentUser;
+      setSaving(true);
 
-      if (!user) {
-        alert("Please login first.");
+      if (!auth.currentUser) {
+        setError("Please log in first.");
         return;
       }
 
-      const token = await user.getIdToken();
-
-      const response = await fetch(
-        "http://localhost:5000/api/users/skills",
+      const response = await api.post(
+        "/users/skills",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name: skillName,
-            type: skillType,
-            level: skillLevel,
-          }),
+          name,
+          type: skillType,
+          level: skillLevel,
         }
       );
 
-      const data = await response.json();
+      const skill = response.data?.skill;
 
-      if (!response.ok) {
-        throw new Error(data.message);
+      if (!skill) {
+        throw new Error(
+          "Invalid response from server."
+        );
       }
 
       const newSkill: Skill = {
-        id: data.skill.id,
-        name: data.skill.name,
+        id: skill.id,
+        name: skill.name,
         type: skillType,
-        level: data.skill.level,
+        level: skill.level,
       };
 
-      setSkills((currentSkills) => [
-        ...currentSkills,
+      setSkills((current) => [
+        ...current,
         newSkill,
       ]);
 
-      alert("Skill added successfully!");
+      setMessage(
+        `"${newSkill.name}" added successfully.`
+      );
 
       resetForm();
-    } catch (error: any) {
-      console.error("Add skill error:", error);
+    } catch (err: any) {
+      console.error("Add skill error:", err);
 
-      alert(
-        error.message || "Failed to add skill."
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to add skill."
       );
+    } finally {
+      setSaving(false);
     }
-  };
-
-  // =========================
-  // EDIT SKILL
-  // =========================
-
-  const handleEditSkill = (skill: Skill) => {
-    setSkillName(skill.name);
-    setSkillType(skill.type);
-    setSkillLevel(skill.level);
-
-    setEditingSkillId(skill.id);
-
-    setShowForm(true);
   };
 
   // =========================
   // DELETE SKILL
   // =========================
 
-  const handleDeleteSkill = async (id: string) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this skill?"
-    );
-
-    if (!confirmDelete) {
-      return;
-    }
+  const handleDeleteSkill = async () => {
+    if (!deleteId) return;
 
     try {
-      const user = auth.currentUser;
+      setDeletingId(deleteId);
+      setMessage("");
+      setError("");
 
-      if (!user) {
-        alert("Please login first.");
+      if (!auth.currentUser) {
+        setError("Please log in first.");
         return;
       }
 
-      const token = await user.getIdToken();
-
-      const response = await fetch(
-        `http://localhost:5000/api/users/skills/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const skill = skills.find(
+        (item) => item.id === deleteId
       );
 
-      const data = await response.json();
+      await api.delete(
+        `/users/skills/${deleteId}`
+      );
 
-      if (!response.ok) {
-        throw new Error(data.message);
-      }
-
-      setSkills((currentSkills) =>
-        currentSkills.filter(
-          (skill) => skill.id !== id
+      setSkills((current) =>
+        current.filter(
+          (item) => item.id !== deleteId
         )
       );
 
-      alert("Skill deleted successfully!");
-    } catch (error: any) {
-      console.error("Delete skill error:", error);
-
-      alert(
-        error.message || "Failed to delete skill."
+      setMessage(
+        `"${skill?.name || "Skill"}" deleted successfully.`
       );
+
+      setDeleteId(null);
+    } catch (err: any) {
+      console.error(
+        "Delete skill error:",
+        err
+      );
+
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to delete skill."
+      );
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -231,10 +214,23 @@ function MySkills() {
     setSkillName("");
     setSkillType("teach");
     setSkillLevel("Beginner");
-
-    setEditingSkillId(null);
-
     setShowForm(false);
+  };
+
+  // =========================
+  // FORM TOGGLE
+  // =========================
+
+  const toggleForm = () => {
+    setMessage("");
+    setError("");
+
+    if (showForm) {
+      resetForm();
+      return;
+    }
+
+    setShowForm(true);
   };
 
   // =========================
@@ -259,7 +255,6 @@ function MySkills() {
         <div className="page-heading">
           <div>
             <h1>My Skills</h1>
-
             <p>
               Loading your skills...
             </p>
@@ -275,75 +270,71 @@ function MySkills() {
 
   return (
     <div>
-
       {/* PAGE HEADER */}
 
       <div className="page-heading">
-
         <div>
-
           <h1>My Skills</h1>
 
           <p>
             Manage the skills you can teach
             and the skills you want to learn.
           </p>
-
         </div>
 
         <button
           className="primary-button"
-          onClick={() => {
-            if (showForm) {
-              resetForm();
-            } else {
-              setShowForm(true);
-            }
-          }}
+          type="button"
+          onClick={toggleForm}
         >
-          {showForm
-            ? "Cancel"
-            : "+ Add Skill"}
+          {showForm ? "Cancel" : "+ Add Skill"}
         </button>
-
       </div>
 
-      {/* ADD / EDIT FORM */}
+      {/* FEEDBACK */}
+
+      {message && (
+        <div className="success-message">
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
+      {/* ADD SKILL FORM */}
 
       {showForm && (
-
         <div className="dashboard-card skill-form-card">
-
-          <h2>
-            {editingSkillId !== null
-              ? "Edit Skill"
-              : "Add a Skill"}
-          </h2>
+          <h2>Add a Skill</h2>
 
           <div className="form-group">
-
-            <label>
+            <label htmlFor="skill-name">
               Skill Name
             </label>
 
             <input
+              id="skill-name"
               type="text"
               placeholder="Example: React, Python, Photoshop"
               value={skillName}
               onChange={(e) =>
                 setSkillName(e.target.value)
               }
+              disabled={saving}
             />
-
           </div>
 
           <div className="form-group">
-
-            <label>
+            <label htmlFor="skill-type">
               Skill Type
             </label>
 
             <select
+              id="skill-type"
               value={skillType}
               onChange={(e) =>
                 setSkillType(
@@ -352,8 +343,8 @@ function MySkills() {
                     | "learn"
                 )
               }
+              disabled={saving}
             >
-
               <option value="teach">
                 I can teach
               </option>
@@ -361,68 +352,94 @@ function MySkills() {
               <option value="learn">
                 I want to learn
               </option>
-
             </select>
-
           </div>
 
           <div className="form-group">
-
-            <label>
+            <label htmlFor="skill-level">
               Skill Level
             </label>
 
             <select
+              id="skill-level"
               value={skillLevel}
               onChange={(e) =>
                 setSkillLevel(e.target.value)
               }
+              disabled={saving}
             >
-
-              <option>
+              <option value="Beginner">
                 Beginner
               </option>
 
-              <option>
+              <option value="Intermediate">
                 Intermediate
               </option>
 
-              <option>
+              <option value="Advanced">
                 Advanced
               </option>
 
-              <option>
+              <option value="Expert">
                 Expert
               </option>
-
             </select>
-
           </div>
 
           <button
             className="primary-button"
+            type="button"
             onClick={handleSaveSkill}
+            disabled={saving}
           >
-            {editingSkillId !== null
-              ? "Update Skill"
-              : "Save Skill"}
+            {saving ? "Saving..." : "Save Skill"}
           </button>
+        </div>
+      )}
 
+      {/* DELETE CONFIRMATION */}
+
+      {deleteId && (
+        <div className="dashboard-card delete-confirmation">
+          <h3>Delete this skill?</h3>
+
+          <p>
+            This skill will be permanently
+            removed from your profile.
+          </p>
+
+          <div className="skill-actions">
+            <button
+              className="small-button"
+              type="button"
+              onClick={() => setDeleteId(null)}
+              disabled={deletingId !== null}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="delete-button"
+              type="button"
+              onClick={handleDeleteSkill}
+              disabled={deletingId !== null}
+            >
+              {deletingId
+                ? "Deleting..."
+                : "Delete Skill"}
+            </button>
+          </div>
         </div>
       )}
 
       {/* SKILLS GRID */}
 
       <div className="skills-grid">
-
-        {/* TEACHING SKILLS */}
+        {/* TEACHING */}
 
         <div className="dashboard-card">
-
           <div className="card-header">
-
             <div>
-
               <h2>
                 Skills I Can Teach
               </h2>
@@ -431,34 +448,36 @@ function MySkills() {
                 Skills you can share with
                 other users.
               </p>
-
             </div>
-
           </div>
 
           <div className="skill-list">
-
             {teachingSkills.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  ⭐
+                </div>
 
-              <p>
-                No teaching skills added yet.
-              </p>
+                <strong>
+                  No teaching skills yet
+                </strong>
 
+                <span>
+                  Add a skill you can teach
+                  to other users.
+                </span>
+              </div>
             ) : (
-
               teachingSkills.map((skill) => (
-
                 <div
                   className="skill-item"
                   key={skill.id}
                 >
-
                   <div className="skill-icon">
                     💻
                   </div>
 
                   <div className="skill-info">
-
                     <strong>
                       {skill.name}
                     </strong>
@@ -466,51 +485,33 @@ function MySkills() {
                     <span>
                       {skill.level}
                     </span>
-
                   </div>
 
                   <div className="skill-actions">
-
-                    <button
-                      className="edit-button"
-                      onClick={() =>
-                        handleEditSkill(skill)
-                      }
-                    >
-                      Edit
-                    </button>
-
                     <button
                       className="delete-button"
+                      type="button"
                       onClick={() =>
-                        handleDeleteSkill(
-                          skill.id
-                        )
+                        setDeleteId(skill.id)
+                      }
+                      disabled={
+                        deletingId === skill.id
                       }
                     >
                       Delete
                     </button>
-
                   </div>
-
                 </div>
-
               ))
-
             )}
-
           </div>
-
         </div>
 
-        {/* LEARNING SKILLS */}
+        {/* LEARNING */}
 
         <div className="dashboard-card">
-
           <div className="card-header">
-
             <div>
-
               <h2>
                 Skills I Want to Learn
               </h2>
@@ -519,34 +520,36 @@ function MySkills() {
                 Skills you are interested
                 in learning.
               </p>
-
             </div>
-
           </div>
 
           <div className="skill-list">
-
             {learningSkills.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  🎯
+                </div>
 
-              <p>
-                No learning skills added yet.
-              </p>
+                <strong>
+                  No learning skills yet
+                </strong>
 
+                <span>
+                  Add a skill you want to
+                  learn from others.
+                </span>
+              </div>
             ) : (
-
               learningSkills.map((skill) => (
-
                 <div
                   className="skill-item"
                   key={skill.id}
                 >
-
                   <div className="skill-icon">
                     🎯
                   </div>
 
                   <div className="skill-info">
-
                     <strong>
                       {skill.name}
                     </strong>
@@ -554,45 +557,28 @@ function MySkills() {
                     <span>
                       {skill.level}
                     </span>
-
                   </div>
 
                   <div className="skill-actions">
-
-                    <button
-                      className="edit-button"
-                      onClick={() =>
-                        handleEditSkill(skill)
-                      }
-                    >
-                      Edit
-                    </button>
-
                     <button
                       className="delete-button"
+                      type="button"
                       onClick={() =>
-                        handleDeleteSkill(
-                          skill.id
-                        )
+                        setDeleteId(skill.id)
+                      }
+                      disabled={
+                        deletingId === skill.id
                       }
                     >
                       Delete
                     </button>
-
                   </div>
-
                 </div>
-
               ))
-
             )}
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

@@ -1,290 +1,304 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import api from "../api/api";
 
-interface Request {
-  id: number;
-  name: string;
-  role: string;
-  skill: string;
-  type: "received" | "sent";
+interface ExchangeRequest {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  senderName: string;
+  senderRole: string;
+  receiverName: string;
+  receiverRole: string;
+  skillId: string;
+  skillName: string;
+  skillLevel?: string;
   status: "pending" | "accepted" | "rejected";
+  createdAt: string;
+  updatedAt: string;
 }
 
 function Requests() {
+  const [sentRequests, setSentRequests] = useState<ExchangeRequest[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<
+    ExchangeRequest[]
+  >([]);
 
-  const [requests, setRequests] = useState<Request[]>([
-    {
-      id: 1,
-      name: "Avinash",
-      role: "Full Stack Developer",
-      skill: "React",
-      type: "received",
-      status: "pending"
-    },
-    {
-      id: 2,
-      name: "Rahul",
-      role: "Frontend Developer",
-      skill: "Python",
-      type: "sent",
-      status: "pending"
-    },
-    {
-      id: 3,
-      name: "Anjali",
-      role: "UI/UX Designer",
-      skill: "Figma",
-      type: "received",
-      status: "accepted"
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get("/users/requests");
+
+      setSentRequests(response.data.sent || []);
+      setReceivedRequests(response.data.received || []);
+    } catch (err: unknown) {
+      console.error("Failed to load requests:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load exchange requests."
+      );
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-
-  const updateRequestStatus = (
-    id: number,
-    status: "accepted" | "rejected"
-  ) => {
-
-    setRequests(
-      requests.map((request) =>
-        request.id === id
-          ? { ...request, status }
-          : request
-      )
-    );
-
   };
 
+  useEffect(() => {
+    void fetchRequests();
+  }, []);
 
-  const pendingRequests = requests.filter(
+  const updateRequestStatus = async (
+    requestId: string,
+    status: "accepted" | "rejected"
+  ) => {
+    try {
+      setProcessingId(requestId);
+      setError("");
+      setSuccess("");
+
+      await api.patch(`/users/requests/${requestId}`, {
+        status,
+      });
+
+      setSuccess(
+        status === "accepted"
+          ? "Exchange request accepted."
+          : "Exchange request rejected."
+      );
+
+      await fetchRequests();
+    } catch (err: unknown) {
+      console.error("Failed to update request:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update exchange request."
+      );
+    } finally {
+      setProcessingId("");
+    }
+  };
+
+  const allRequests = useMemo(
+    () => [...receivedRequests, ...sentRequests],
+    [receivedRequests, sentRequests]
+  );
+
+  const pendingRequests = allRequests.filter(
     (request) => request.status === "pending"
   );
 
-  const acceptedRequests = requests.filter(
+  const acceptedRequests = allRequests.filter(
     (request) => request.status === "accepted"
   );
 
-  const rejectedRequests = requests.filter(
+  const rejectedRequests = allRequests.filter(
     (request) => request.status === "rejected"
   );
 
+  const formatDate = (date: string) => {
+    if (!date) return "";
+
+    return new Date(date).toLocaleDateString();
+  };
 
   return (
     <div>
-
-      {/* PAGE HEADER */}
-
       <div className="page-heading">
-
         <div>
-
           <h1>Exchange Requests</h1>
-
-          <p>
-            Manage your skill exchange requests.
-          </p>
-
+          <p>Manage your skill exchange requests.</p>
         </div>
-
       </div>
 
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
 
-      {/* SUMMARY */}
+      {success && (
+        <div className="success-message">
+          {success}
+        </div>
+      )}
 
       <div className="request-summary">
-
         <div className="summary-card">
-
           <span>Pending</span>
-
-          <strong>
-            {pendingRequests.length}
-          </strong>
-
+          <strong>{pendingRequests.length}</strong>
         </div>
 
-
         <div className="summary-card">
-
           <span>Accepted</span>
-
-          <strong>
-            {acceptedRequests.length}
-          </strong>
-
+          <strong>{acceptedRequests.length}</strong>
         </div>
-
 
         <div className="summary-card">
-
           <span>Rejected</span>
-
-          <strong>
-            {rejectedRequests.length}
-          </strong>
-
+          <strong>{rejectedRequests.length}</strong>
         </div>
-
       </div>
 
-
-      {/* REQUEST LIST */}
-
       <div className="dashboard-card requests-card">
-
         <div className="card-header">
-
           <div>
-
-            <h2>
-              Your Requests
-            </h2>
-
-            <p>
-              Incoming and outgoing skill exchange requests.
-            </p>
-
+            <h2>Received Requests</h2>
+            <p>People who want to learn from you.</p>
           </div>
-
         </div>
 
-
-        <div className="request-list">
-
-          {requests.length === 0 ? (
-
-            <div className="empty-requests">
-
-              <h3>
-                No requests yet
-              </h3>
-
-              <p>
-                Your skill exchange requests will appear here.
-              </p>
-
-            </div>
-
-          ) : (
-
-            requests.map((request) => (
-
+        {loading ? (
+          <p>Loading requests...</p>
+        ) : receivedRequests.length === 0 ? (
+          <div className="empty-requests">
+            <h3>No received requests</h3>
+            <p>
+              Requests from other users will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="request-list">
+            {receivedRequests.map((request) => (
               <div
                 className="exchange-request"
                 key={request.id}
               >
-
-                {/* AVATAR */}
-
                 <div className="request-avatar">
-
-                  {request.name.charAt(0)}
-
+                  {request.senderName.charAt(0).toUpperCase() || "U"}
                 </div>
 
-
-                {/* INFORMATION */}
-
                 <div className="exchange-request-info">
-
-                  <h3>
-                    {request.name}
-                  </h3>
+                  <h3>{request.senderName}</h3>
 
                   <p>
-                    {request.role}
+                    {request.senderRole || "Skill Exchanger"}
                   </p>
 
                   <span>
-                    Skill: <strong>{request.skill}</strong>
+                    Wants to learn:{" "}
+                    <strong>{request.skillName}</strong>
                   </span>
 
                   <small>
-
-                    {request.type === "received"
-                      ? "Incoming request"
-                      : "Request sent"}
-
+                    {formatDate(request.createdAt)}
                   </small>
-
                 </div>
-
-
-                {/* STATUS / ACTIONS */}
 
                 <div className="request-actions">
-
-                  {request.status === "pending" && (
+                  {request.status === "pending" ? (
                     <>
-                      {request.type === "received" ? (
+                      <button
+                        className="accept-button"
+                        disabled={processingId === request.id}
+                        onClick={() =>
+                          void updateRequestStatus(
+                            request.id,
+                            "accepted"
+                          )
+                        }
+                      >
+                        {processingId === request.id
+                          ? "Processing..."
+                          : "Accept"}
+                      </button>
 
-                        <>
-
-                          <button
-                            className="accept-button"
-                            onClick={() =>
-                              updateRequestStatus(
-                                request.id,
-                                "accepted"
-                              )
-                            }
-                          >
-                            Accept
-                          </button>
-
-                          <button
-                            className="reject-button"
-                            onClick={() =>
-                              updateRequestStatus(
-                                request.id,
-                                "rejected"
-                              )
-                            }
-                          >
-                            Reject
-                          </button>
-
-                        </>
-
-                      ) : (
-
-                        <span className="status pending-status">
-                          Pending
-                        </span>
-
-                      )}
+                      <button
+                        className="reject-button"
+                        disabled={processingId === request.id}
+                        onClick={() =>
+                          void updateRequestStatus(
+                            request.id,
+                            "rejected"
+                          )
+                        }
+                      >
+                        Reject
+                      </button>
                     </>
-                  )}
-
-
-                  {request.status === "accepted" && (
-
-                    <span className="status accepted-status">
-                      Accepted
+                  ) : (
+                    <span
+                      className={`status ${request.status}-status`}
+                    >
+                      {request.status.charAt(0).toUpperCase() +
+                        request.status.slice(1)}
                     </span>
-
                   )}
-
-
-                  {request.status === "rejected" && (
-
-                    <span className="status rejected-status">
-                      Rejected
-                    </span>
-
-                  )}
-
                 </div>
-
               </div>
-
-            ))
-
-          )}
-
-        </div>
-
+            ))}
+          </div>
+        )}
       </div>
 
+      <div className="dashboard-card requests-card">
+        <div className="card-header">
+          <div>
+            <h2>Sent Requests</h2>
+            <p>Requests you have sent to other users.</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <p>Loading requests...</p>
+        ) : sentRequests.length === 0 ? (
+          <div className="empty-requests">
+            <h3>No sent requests</h3>
+            <p>
+              Visit Discover to find someone and send an exchange
+              request.
+            </p>
+          </div>
+        ) : (
+          <div className="request-list">
+            {sentRequests.map((request) => (
+              <div
+                className="exchange-request"
+                key={request.id}
+              >
+                <div className="request-avatar">
+                  {request.receiverName.charAt(0).toUpperCase() ||
+                    "U"}
+                </div>
+
+                <div className="exchange-request-info">
+                  <h3>{request.receiverName}</h3>
+
+                  <p>
+                    {request.receiverRole || "Skill Exchanger"}
+                  </p>
+
+                  <span>
+                    Skill requested:{" "}
+                    <strong>{request.skillName}</strong>
+                  </span>
+
+                  <small>
+                    {formatDate(request.createdAt)}
+                  </small>
+                </div>
+
+                <div className="request-actions">
+                  <span
+                    className={`status ${request.status}-status`}
+                  >
+                    {request.status.charAt(0).toUpperCase() +
+                      request.status.slice(1)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

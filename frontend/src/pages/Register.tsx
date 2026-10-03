@@ -1,6 +1,12 @@
-import { useState } from "react";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+
+import { useState, type FormEvent } from "react";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../config/firebase";
+import api from "../api/api";
 
 function Register() {
   const [name, setName] = useState("");
@@ -8,85 +14,98 @@ function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const navigate = useNavigate();
 
-  if (password !== confirmPassword) {
-    alert("Passwords do not match!");
-    return;
-  }
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
 
-  try {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password should be at least 6 characters.");
+      return;
+    }
+
     setLoading(true);
 
-    // Create Firebase Authentication account
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        trimmedEmail,
+        password
+      );
 
-    const user = userCredential.user;
+      const user = userCredential.user;
 
-    // Save display name in Firebase Authentication
-    await updateProfile(user, {
-      displayName: name,
-    });
+      await updateProfile(user, {
+        displayName: trimmedName,
+      });
 
-    // Get Firebase ID token
-    const token = await user.getIdToken();
+      // Ensure the API request uses a freshly obtained Firebase ID token.
+      const token = await user.getIdToken(true);
 
-    // Create user profile in Firestore through backend
-    const response = await fetch(
-      "http://localhost:5000/api/users/profile",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await api.post(
+        "/users/profile",
+        {
+          name: trimmedName,
+          email: trimmedEmail,
         },
-        body: JSON.stringify({
-          name,
-          email,
-        }),
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setSuccess("Account created successfully. Redirecting to login...");
+      await auth.signOut();
+      navigate("/login", { replace: true });
+    } catch (err: unknown) {
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? String(err.code)
+          : "";
+
+      if (code === "auth/email-already-in-use") {
+        setError("This email is already registered.");
+      } else if (code === "auth/weak-password") {
+        setError("Password should be at least 6 characters.");
+      } else if (code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+      } else if (
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err
+      ) {
+        setError(
+          "Your authentication account was created, but your profile could not be saved. Please try logging in or contact support."
+        );
+      } else {
+        setError("Registration failed. Please try again.");
       }
-    );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Profile creation failed:", data);
-      throw new Error(
-        data.message || "Failed to create user profile"
-      );
+      console.error("Registration error:", err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    console.log("Firebase user:", user);
-    console.log("Firestore profile:", data.user);
-
-    alert("Account created successfully!");
-
-    window.location.href = "/login";
-  } catch (error: any) {
-    console.error("Registration error:", error);
-
-    if (error.code === "auth/email-already-in-use") {
-      alert("This email is already registered.");
-    } else if (error.code === "auth/weak-password") {
-      alert("Password should be at least 6 characters.");
-    } else if (error.code === "auth/invalid-email") {
-      alert("Please enter a valid email address.");
-    } else {
-      alert(
-        error.message ||
-          "Registration failed. Please try again."
-      );
-    }
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <div className="login-page">
       <div className="login-container">
@@ -109,67 +128,76 @@ function Register() {
 
         <div className="login-right">
           <div className="login-box">
-
             <h2>Create Account</h2>
-
             <p className="login-subtitle">
               Join Skill Exchanger and start learning
             </p>
 
-            <form onSubmit={handleSubmit}>
+            {error && (
+              <div className="error-message" role="alert">
+                {error}
+              </div>
+            )}
 
+            {success && (
+              <div className="success-message" role="status">
+                {success}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="name">Full Name</label>
-
                 <input
                   id="name"
                   type="text"
                   placeholder="Enter your full name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(event) => setName(event.target.value)}
+                  autoComplete="name"
                   required
                 />
               </div>
 
               <div className="form-group">
                 <label htmlFor="register-email">Email</label>
-
                 <input
                   id="register-email"
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
                   required
                 />
               </div>
 
               <div className="form-group">
                 <label htmlFor="register-password">Password</label>
-
                 <input
                   id="register-password"
                   type="password"
                   placeholder="Create a password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="new-password"
+                  minLength={6}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="confirm-password">
-                  Confirm Password
-                </label>
-
+                <label htmlFor="confirm-password">Confirm Password</label>
                 <input
                   id="confirm-password"
                   type="password"
                   placeholder="Confirm your password"
                   value={confirmPassword}
-                  onChange={(e) =>
-                    setConfirmPassword(e.target.value)
+                  onChange={(event) =>
+                    setConfirmPassword(event.target.value)
                   }
+                  autoComplete="new-password"
+                  minLength={6}
                   required
                 />
               </div>
@@ -181,17 +209,13 @@ function Register() {
               >
                 {loading ? "Creating Account..." : "Create Account"}
               </button>
-
             </form>
 
             <p className="register-text">
-              Already have an account?
-              <a href="/login"> Login</a>
+              Already have an account? <Link to="/login">Login</Link>
             </p>
-
           </div>
         </div>
-
       </div>
     </div>
   );

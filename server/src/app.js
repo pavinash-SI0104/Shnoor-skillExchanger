@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const crypto = require("crypto");
+const { generateAIMatches } = require("./services/aiMatching");
 
 const { db } = require("./config/firebase");
 const authenticateUser = require("./middleware/auth");
@@ -368,4 +369,729 @@ app.delete(
   }
 );
 
+// Get users for the Discover page
+app.get("/api/users/discover", authenticateUser, async (req, res) => {
+  try {
+    const currentUid = req.user.uid;
+    const snapshot = await db.collection("users").get();
+
+    const users = snapshot.docs
+      .map((doc) => {
+        const user = doc.data();
+
+        // Return only fields intended for a public profile
+        return {
+          uid: doc.id,
+          name: user.name || "",
+          role: user.role || "",
+          bio: user.bio || "",
+          photoURL: user.photoURL || "",
+          location: user.location || { type: "online", city: "" },
+          expertiseLevel: user.expertiseLevel || "",
+          skillsToTeach: user.skillsToTeach || [],
+          skillsToLearn: user.skillsToLearn || [],
+        };
+      })
+      .filter((user) => user.uid !== currentUid)
+      .filter((user) => {
+        const originalUser = snapshot.docs.find((doc) => doc.id === user.uid)?.data();
+        return originalUser?.isActive !== false;
+      });
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error("Discover users error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users",
+    });
+  }
+});
+
+// Get another user's public profile
+app.get("/api/users/profile/:uid", authenticateUser, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const userDoc = await db.collection("users").doc(uid).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    const user = userDoc.data();
+
+    if (user.isActive === false) {
+      return res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    // Do not expose the user's email in the public profile response
+    res.status(200).json({
+      success: true,
+      user: {
+        uid: userDoc.id,
+        name: user.name || "",
+        role: user.role || "",
+        bio: user.bio || "",
+        photoURL: user.photoURL || "",
+        location: user.location || { type: "online", city: "" },
+        expertiseLevel: user.expertiseLevel || "",
+        interests: user.interests || [],
+      },
+    });
+  } catch (error) {
+    console.error("Get public profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user profile",
+    });
+  }
+});
+
+// Get another user's skills
+app.get("/api/users/skills/:uid", authenticateUser, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const userDoc = await db.collection("users").doc(uid).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    const user = userDoc.data();
+
+    if (user.isActive === false) {
+      return res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      skillsToTeach: user.skillsToTeach || [],
+      skillsToLearn: user.skillsToLearn || [],
+    });
+  } catch (error) {
+    console.error("Get user skills error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user skills",
+    });
+  }
+});
+// ==============================
+// SEND EXCHANGE REQUEST
+// ==============================
+
+app.post("/api/users/requests", authenticateUser, async (req, res) => {
+  try {
+    const senderId = req.user.uid;
+    const { receiverId, skillId } = req.body;
+
+    if (!receiverId || !skillId) {
+      return res.status(400).json({
+        success: false,
+        message: "Receiver and skill are required",
+      });
+    }
+
+    if (senderId === receiverId) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot send a request to yourself",
+      });
+    }
+
+    const senderDoc = await db.collection("users").doc(senderId).get();
+    const receiverDoc = await db.collection("users").doc(receiverId).get();
+
+    if (!senderDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Your user profile was not found",
+      });
+    }
+
+    if (!receiverDoc.exists || receiverDoc.data().isActive === false) {
+      return res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    const sender = senderDoc.data();
+    const receiver = receiverDoc.data();
+
+    const receiverSkills = receiver.skillsToTeach || [];
+
+    const selectedSkill = receiverSkills.find(
+      (skill) => skill.id === skillId
+    );
+
+    if (!selectedSkill) {
+      return res.status(400).json({
+        success: false,
+        message: "The selected skill is not available from this user",
+      });
+    }
+
+    const existingRequests = await db
+      .collection("exchangeRequests")
+      .where("senderId", "==", senderId)
+      .where("receiverId", "==", receiverId)
+      .get();
+
+    const duplicatePendingRequest = existingRequests.docs.some(
+      (doc) => {
+        const request = doc.data();
+
+        return (
+          request.skillId === skillId &&
+          request.status === "pending"
+        );
+      }
+    );
+
+    if (duplicatePendingRequest) {
+      return res.status(409).json({
+        success: false,
+        message: "A pending request for this skill already exists",
+      });
+    }
+
+    const requestId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const request = {
+      id: requestId,
+
+      senderId,
+      receiverId,
+
+      senderName: sender.name || "",
+      senderRole: sender.role || "",
+
+      receiverName: receiver.name || "",
+      receiverRole: receiver.role || "",
+
+      skillId,
+      skillName: selectedSkill.name,
+      skillLevel: selectedSkill.level || "",
+
+      status: "pending",
+
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db
+      .collection("exchangeRequests")
+      .doc(requestId)
+      .set(request);
+
+    res.status(201).json({
+      success: true,
+      message: "Exchange request sent successfully",
+      request,
+    });
+  } catch (error) {
+    console.error("Send exchange request error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to send exchange request",
+    });
+  }
+});
+
+
+// ==============================
+// GET EXCHANGE REQUESTS
+// ==============================
+
+app.get("/api/users/requests", authenticateUser, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+
+    const snapshot = await db
+      .collection("exchangeRequests")
+      .get();
+
+    const sent = [];
+    const received = [];
+
+    snapshot.docs.forEach((doc) => {
+      const request = doc.data();
+
+      if (request.senderId === uid) {
+        sent.push(request);
+      }
+
+      if (request.receiverId === uid) {
+        received.push(request);
+      }
+    });
+
+    sent.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+    );
+
+    received.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+    );
+
+    res.status(200).json({
+      success: true,
+      sent,
+      received,
+    });
+  } catch (error) {
+    console.error("Get exchange requests error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch exchange requests",
+    });
+  }
+});
+
+
+// ==============================
+// UPDATE EXCHANGE REQUEST
+// ==============================
+
+app.patch(
+  "/api/users/requests/:requestId",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const uid = req.user.uid;
+      const { requestId } = req.params;
+      const { status } = req.body;
+
+      if (!["accepted", "rejected"].includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid request status",
+        });
+      }
+
+      const requestRef = db
+        .collection("exchangeRequests")
+        .doc(requestId);
+
+      const requestDoc = await requestRef.get();
+
+      if (!requestDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "Exchange request not found",
+        });
+      }
+
+      const request = requestDoc.data();
+
+      // Only the receiver can accept or reject a request
+      if (request.receiverId !== uid) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to update this request",
+        });
+      }
+
+      if (request.status !== "pending") {
+        return res.status(400).json({
+          success: false,
+          message: "This request has already been processed",
+        });
+      }
+
+      await requestRef.update({
+        status,
+        updatedAt: new Date().toISOString(),
+      });
+
+      res.status(200).json({
+        success: true,
+        message:
+          status === "accepted"
+            ? "Exchange request accepted"
+            : "Exchange request rejected",
+      });
+    } catch (error) {
+      console.error("Update exchange request error:", error);
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to update exchange request",
+      });
+    }
+  }
+);
+// ==============================
+// GET USER MATCHES
+// ==============================
+
+app.get("/api/users/matches", authenticateUser, async (req, res) => {
+  try {
+    const currentUid = req.user.uid;
+
+    const currentUserDoc = await db
+      .collection("users")
+      .doc(currentUid)
+      .get();
+
+    if (!currentUserDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    const currentUser = currentUserDoc.data();
+
+    const myTeachingSkills = currentUser.skillsToTeach || [];
+    const myLearningSkills = currentUser.skillsToLearn || [];
+
+    const snapshot = await db.collection("users").get();
+
+    const matches = [];
+
+    snapshot.docs.forEach((doc) => {
+      if (doc.id === currentUid) {
+        return;
+      }
+
+      const user = doc.data();
+
+      if (user.isActive === false) {
+        return;
+      }
+
+      const theirTeachingSkills = user.skillsToTeach || [];
+      const theirLearningSkills = user.skillsToLearn || [];
+
+      // Skills I want to learn that they can teach
+      const theyCanTeachMe = myLearningSkills.filter((mySkill) =>
+        theirTeachingSkills.some(
+          (theirSkill) =>
+            theirSkill.name.toLowerCase() ===
+            mySkill.name.toLowerCase()
+        )
+      );
+
+      // Skills I can teach that they want to learn
+      const iCanTeachThem = myTeachingSkills.filter((mySkill) =>
+        theirLearningSkills.some(
+          (theirSkill) =>
+            theirSkill.name.toLowerCase() ===
+            mySkill.name.toLowerCase()
+        )
+      );
+
+      const possibleMatches =
+        myLearningSkills.length + myTeachingSkills.length;
+
+      const matchingSkills =
+        theyCanTeachMe.length + iCanTeachThem.length;
+
+      const matchPercentage =
+        possibleMatches > 0
+          ? Math.round(
+              (matchingSkills / possibleMatches) * 100
+            )
+          : 0;
+
+      // Only return users with at least one compatible skill
+      if (matchingSkills === 0) {
+        return;
+      }
+
+      matches.push({
+        uid: doc.id,
+        name: user.name || "",
+        role: user.role || "",
+        photoURL: user.photoURL || "",
+        expertiseLevel: user.expertiseLevel || "",
+
+        youCanTeach: iCanTeachThem.map(
+          (skill) => skill.name
+        ),
+
+        theyCanTeach: theyCanTeachMe.map(
+          (skill) => skill.name
+        ),
+
+        matchPercentage,
+      });
+    });
+
+    matches.sort(
+      (a, b) =>
+        b.matchPercentage - a.matchPercentage
+    );
+
+    res.status(200).json({
+      success: true,
+      matches,
+    });
+  } catch (error) {
+    console.error("Get matches error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate matches",
+    });
+  }
+});
+// ==============================
+// AI SKILL MATCHES
+// ==============================
+
+app.get("/api/users/matches", authenticateUser, async (req, res) => {
+  try {
+    const currentUid = req.user.uid;
+
+    const currentUserDoc = await db
+      .collection("users")
+      .doc(currentUid)
+      .get();
+
+    if (!currentUserDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    const currentUser = {
+      uid: currentUid,
+      ...currentUserDoc.data(),
+    };
+
+    const myTeachingSkills = currentUser.skillsToTeach || [];
+    const myLearningSkills = currentUser.skillsToLearn || [];
+
+    if (
+      myTeachingSkills.length === 0 &&
+      myLearningSkills.length === 0
+    ) {
+      return res.json({
+        success: true,
+        matches: [],
+        aiEnabled: false,
+        message: "Add skills to discover potential matches",
+      });
+    }
+
+    const snapshot = await db.collection("users").get();
+
+    const candidates = snapshot.docs
+      .map((doc) => ({
+        uid: doc.id,
+        ...doc.data(),
+      }))
+      .filter((user) => user.uid !== currentUid)
+      .filter((user) => user.isActive !== false);
+
+    /*
+     * First perform deterministic filtering.
+     * This prevents sending every Firestore user to the LLM.
+     */
+    const myTeachingNames = new Set(
+      myTeachingSkills.map((skill) =>
+        skill.name.trim().toLowerCase()
+      )
+    );
+
+    const myLearningNames = new Set(
+      myLearningSkills.map((skill) =>
+        skill.name.trim().toLowerCase()
+      )
+    );
+
+    const filteredCandidates = candidates
+      .map((candidate) => {
+        const candidateTeaching =
+          candidate.skillsToTeach || [];
+
+        const candidateLearning =
+          candidate.skillsToLearn || [];
+
+        const theyCanTeachMe = candidateTeaching.filter(
+          (skill) =>
+            myLearningNames.has(
+              skill.name.trim().toLowerCase()
+            )
+        );
+
+        const ICanTeachThem = candidateLearning.filter(
+          (skill) =>
+            myTeachingNames.has(
+              skill.name.trim().toLowerCase()
+            )
+        );
+
+        return {
+          ...candidate,
+          theyCanTeachMe,
+          ICanTeachThem,
+        };
+      })
+      .filter(
+        (candidate) =>
+          candidate.theyCanTeachMe.length > 0 ||
+          candidate.ICanTeachThem.length > 0
+      )
+      .slice(0, 20);
+
+    /*
+     * No deterministic candidates means there is nothing
+     * useful to send to the LLM.
+     */
+    if (filteredCandidates.length === 0) {
+      return res.json({
+        success: true,
+        matches: [],
+        aiEnabled: false,
+        message: "No matching skills found yet",
+      });
+    }
+
+    let aiResult = null;
+
+    try {
+      aiResult = await generateAIMatches({
+        currentUser,
+        candidates: filteredCandidates,
+      });
+    } catch (aiError) {
+      console.error(
+        "AI matching failed, using deterministic matching:",
+        aiError.message
+      );
+    }
+
+    /*
+     * AI result available.
+     */
+    if (aiResult) {
+      const candidateMap = new Map(
+        filteredCandidates.map((candidate) => [
+          candidate.uid,
+          candidate,
+        ])
+      );
+
+      const matches = aiResult.matches
+        .filter((aiMatch) =>
+          candidateMap.has(aiMatch.uid)
+        )
+        .map((aiMatch) => {
+          const candidate = candidateMap.get(aiMatch.uid);
+
+          return {
+            uid: candidate.uid,
+            name: candidate.name || "",
+            role: candidate.role || "",
+            photoURL: candidate.photoURL || "",
+            expertiseLevel:
+              candidate.expertiseLevel || "",
+            youCanTeach: candidate.ICanTeachThem.map(
+              (skill) => skill.name
+            ),
+            theyCanTeach: candidate.theyCanTeachMe.map(
+              (skill) => skill.name
+            ),
+            matchPercentage: Math.round(aiMatch.score),
+            reason: aiMatch.reason,
+            aiGenerated: true,
+          };
+        })
+        .sort(
+          (a, b) =>
+            b.matchPercentage - a.matchPercentage
+        );
+
+      return res.json({
+        success: true,
+        matches,
+        aiEnabled: true,
+      });
+    }
+
+    /*
+     * Deterministic fallback if Gemini is unavailable.
+     */
+    const possibleMatches =
+      myTeachingSkills.length +
+      myLearningSkills.length;
+
+    const matches = filteredCandidates
+      .map((candidate) => {
+        const matchingSkills =
+          candidate.theyCanTeachMe.length +
+          candidate.ICanTeachThem.length;
+
+        const matchPercentage =
+          possibleMatches > 0
+            ? Math.round(
+                (matchingSkills / possibleMatches) * 100
+              )
+            : 0;
+
+        return {
+          uid: candidate.uid,
+          name: candidate.name || "",
+          role: candidate.role || "",
+          photoURL: candidate.photoURL || "",
+          expertiseLevel:
+            candidate.expertiseLevel || "",
+          youCanTeach: candidate.ICanTeachThem.map(
+            (skill) => skill.name
+          ),
+          theyCanTeach: candidate.theyCanTeachMe.map(
+            (skill) => skill.name
+          ),
+          matchPercentage,
+          reason:
+            "This user has skills that overlap with your learning or teaching goals.",
+          aiGenerated: false,
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.matchPercentage - a.matchPercentage
+      );
+
+    return res.json({
+      success: true,
+      matches,
+      aiEnabled: false,
+    });
+  } catch (error) {
+    console.error("Get matches error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate skill matches",
+    });
+  }
+});
 module.exports = app;
