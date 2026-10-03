@@ -1,1 +1,329 @@
-import { useEffect, useState } from "react"; import { useNavigate } from "react-router-dom"; import { auth } from "../config/firebase"; import api from "../api/api"; interface UserProfile { uid: string; name: string; email: string; photoURL?: string; bio?: string; interests?: string[]; expertiseLevel?: string; skillsToTeach?: unknown[]; skillsToLearn?: unknown[]; } interface DashboardData { user: UserProfile | null; skillsToTeach: number; skillsToLearn: number; activeMatches: number; upcomingSessions: unknown[]; recentRequests: unknown[]; } function Dashboard() { const navigate = useNavigate(); const [dashboard, setDashboard] = useState<DashboardData>({ user: null, skillsToTeach: 0, skillsToLearn: 0, activeMatches: 0, upcomingSessions: [], recentRequests: [], }); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); useEffect(() => { loadDashboardData(); }, []); const loadDashboardData = async () => { try { setLoading(true); setError(""); const firebaseUser = auth.currentUser; if (!firebaseUser) { setError("You are not logged in."); return; } /* * ================================ * LOAD USER PROFILE * ================================ */ const profileResponse = await api.get("/users/profile"); const profileUser = profileResponse.data?.user || null; /* * ================================ * LOAD USER SKILLS * ================================ */ const skillsResponse = await api.get("/users/skills"); const skillsData = skillsResponse.data || {}; const teachSkills = Array.isArray( skillsData.skillsToTeach ) ? skillsData.skillsToTeach : []; const learnSkills = Array.isArray( skillsData.skillsToLearn ) ? skillsData.skillsToLearn : []; /* * ================================ * DASHBOARD MODULES * * Requests / matches / sessions * will be connected to their real * backend endpoints when those * modules are implemented. * ================================ */ setDashboard({ user: profileUser, skillsToTeach: teachSkills.length, skillsToLearn: learnSkills.length, activeMatches: 0, upcomingSessions: [], recentRequests: [], }); } catch (err: any) { console.error("Dashboard loading error:", err); const message = err?.response?.data?.message || err?.message || "Failed to load dashboard data."; setError(message); } finally { setLoading(false); } }; /* * ================================ * LOADING STATE * ================================ */ if (loading) { return ( <div> <div className="page-heading"> <div> <h1>Loading dashboard...</h1> <p> Fetching your skill exchange data. </p> </div> </div> </div> ); } /* * ================================ * ERROR STATE * ================================ */ if (error) { return ( <div> <div className="page-heading"> <div> <h1>Dashboard</h1> <p> We couldn't load your dashboard data. </p> </div> </div> <div className="dashboard-card"> <div className="error-message"> {error} </div> <button className="primary-button" type="button" onClick={loadDashboardData} > Try Again </button> </div> </div> ); } /* * ================================ * USER NAME * ================================ */ const userName = dashboard.user?.name || auth.currentUser?.displayName || auth.currentUser?.email?.split("@")[0] || "User"; /* * ================================ * DASHBOARD * ================================ */ return ( <div> {/* ====================================== PAGE HEADER ====================================== */} <div className="page-heading"> <div> <h1> Welcome back, {userName} 👋 </h1> <p> Here's what's happening with your skill exchange. </p> </div> <button className="primary-button" type="button" onClick={() => navigate("/skills")} > + Add Skill </button> </div> {/* ====================================== STAT CARDS ====================================== */} <div className="stats-grid"> {/* Skills I Teach */} <div className="stat-card"> <div className="stat-icon"> ⭐ </div> <div> <p>Skills I Teach</p> <h2> {dashboard.skillsToTeach} </h2> </div> </div> {/* Skills I Learn */} <div className="stat-card"> <div className="stat-icon"> 📚 </div> <div> <p>Skills I Learn</p> <h2> {dashboard.skillsToLearn} </h2> </div> </div> {/* Active Matches */} <div className="stat-card"> <div className="stat-icon"> 🤝 </div> <div> <p>Active Matches</p> <h2> {dashboard.activeMatches} </h2> </div> </div> {/* Upcoming Sessions */} <div className="stat-card"> <div className="stat-icon"> 📅 </div> <div> <p>Upcoming Sessions</p> <h2> {dashboard.upcomingSessions.length} </h2> </div> </div> </div> {/* ====================================== DASHBOARD CONTENT ====================================== */} <div className="dashboard-grid"> {/* ==================================== UPCOMING SESSIONS ==================================== */} <div className="dashboard-card"> <div className="card-header"> <h3> Upcoming Sessions </h3> <button type="button" className="card-link-button" onClick={() => navigate("/sessions")} > View all </button> </div> {dashboard.upcomingSessions.length === 0 ? ( <div className="empty-state"> <div className="empty-state-icon"> 📅 </div> <strong> No upcoming sessions </strong> <span> Your scheduled skill exchange sessions will appear here. </span> </div> ) : ( dashboard.upcomingSessions.map( (session: any, index) => ( <div className="session-item" key={ session.id || index } > <div className="session-icon"> 📚 </div> <div className="session-info"> <strong> {session.title} </strong> <span> With{" "} {session.partnerName} </span> <small> {session.date} •{" "} {session.time} </small> </div> <button className="small-button" type="button" onClick={() => navigate( `/sessions/${session.id}` ) } > View </button> </div> ) ) )} </div> {/* ==================================== RECENT REQUESTS ==================================== */} <div className="dashboard-card"> <div className="card-header"> <h3> Recent Requests </h3> <button type="button" className="card-link-button" onClick={() => navigate("/requests") } > View all </button> </div> {dashboard.recentRequests.length === 0 ? ( <div className="empty-state"> <div className="empty-state-icon"> 🤝 </div> <strong> No requests yet </strong> <span> Requests you send or receive will appear here. </span> </div> ) : ( dashboard.recentRequests.map( (request: any, index) => ( <div className="request-item" key={ request.id || index } > <div className="user-avatar"> {request.name ?.charAt(0) ?.toUpperCase() || "U"} </div> <div className="request-info"> <strong> {request.name} </strong> <span> {request.message} </span> </div> <span className={`status ${request.status}`} > {request.status} </span> </div> ) ) )} </div> </div> </div> ); } export default Dashboard;
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api/api";
+
+type Session = {
+  id: string;
+  requestId: string;
+  teacherId: string;
+  learnerId: string;
+  teacherName: string;
+  learnerName: string;
+  skillId: string;
+  skillName: string;
+  type: "online" | "offline";
+  meetingLink?: string;
+  location?: string;
+  scheduledAt: string;
+  duration: number;
+  status: "scheduled" | "completed" | "cancelled";
+};
+
+type SessionsResponse = {
+  sessions?: Session[];
+};
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  return date.toLocaleString([], {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function Dashboard() {
+  const navigate = useNavigate();
+
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadSessions = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await api.get<SessionsResponse>("/users/sessions");
+
+        setSessions(response.data.sessions ?? []);
+      } catch (err: any) {
+        setError(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to load session data."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSessions();
+  }, []);
+
+  const now = new Date();
+
+  const upcomingSessions = useMemo(() => {
+    return sessions
+      .filter(
+        (session) =>
+          session.status === "scheduled" &&
+          new Date(session.scheduledAt).getTime() >= now.getTime()
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.scheduledAt).getTime() -
+          new Date(b.scheduledAt).getTime()
+      );
+  }, [sessions]);
+
+  const completedSessions = useMemo(() => {
+    return sessions
+      .filter((session) => session.status === "completed")
+      .sort(
+        (a, b) =>
+          new Date(b.scheduledAt).getTime() -
+          new Date(a.scheduledAt).getTime()
+      );
+  }, [sessions]);
+
+  const cancelledSessions = useMemo(() => {
+    return sessions
+      .filter((session) => session.status === "cancelled")
+      .sort(
+        (a, b) =>
+          new Date(b.scheduledAt).getTime() -
+          new Date(a.scheduledAt).getTime()
+      );
+  }, [sessions]);
+
+  const nextSession = upcomingSessions[0];
+
+  const getRole = (session: Session) => {
+    return session.teacherId === session.learnerId
+      ? "Participant"
+      : session.teacherId
+        ? "Teacher/Learner"
+        : "Participant";
+  };
+
+  const getOtherParticipant = (session: Session) => {
+    return session.teacherId === session.learnerId
+      ? session.teacherName
+      : session.teacherName || session.learnerName;
+  };
+
+  return (
+    <div className="dashboard-page">
+      <div className="dashboard-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Manage your skill exchange activity.</p>
+        </div>
+      </div>
+
+      {error && <div className="error-message">{error}</div>}
+
+      <div className="dashboard-stats">
+        <div className="dashboard-stat-card">
+          <span className="dashboard-stat-label">Upcoming Sessions</span>
+          <strong>
+            {loading ? "—" : upcomingSessions.length}
+          </strong>
+        </div>
+
+        <div className="dashboard-stat-card">
+          <span className="dashboard-stat-label">Completed Sessions</span>
+          <strong>
+            {loading ? "—" : completedSessions.length}
+          </strong>
+        </div>
+
+        <div className="dashboard-stat-card">
+          <span className="dashboard-stat-label">Cancelled Sessions</span>
+          <strong>
+            {loading ? "—" : cancelledSessions.length}
+          </strong>
+        </div>
+      </div>
+
+      <div className="dashboard-section">
+        <div className="section-heading-row">
+          <div>
+            <h2>Next Session</h2>
+            <p>Your nearest scheduled skill exchange.</p>
+          </div>
+
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => navigate("/sessions")}
+          >
+            View All Sessions
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="dashboard-empty">Loading session...</div>
+        ) : nextSession ? (
+          <div className="next-session-card">
+            <div className="next-session-main">
+              <span className="session-status scheduled">
+                Scheduled
+              </span>
+
+              <h3>{nextSession.skillName}</h3>
+
+              <p className="session-date">
+                {formatDateTime(nextSession.scheduledAt)}
+              </p>
+
+              <p>
+                Duration: <strong>{nextSession.duration} minutes</strong>
+              </p>
+
+              <p>
+                Mode:{" "}
+                <strong>
+                  {nextSession.type === "online"
+                    ? "Online"
+                    : "Offline"}
+                </strong>
+              </p>
+
+              <p>
+                Role: <strong>{getRole(nextSession)}</strong>
+              </p>
+
+              <p>
+                With: <strong>{getOtherParticipant(nextSession)}</strong>
+              </p>
+
+              <p>
+                {nextSession.type === "online"
+                  ? `Teacher: ${nextSession.teacherName}`
+                  : `Location: ${nextSession.location || "Not provided"}`}
+              </p>
+            </div>
+
+            <div className="next-session-action">
+              {nextSession.type === "online" &&
+              nextSession.meetingLink ? (
+                <a
+                  href={nextSession.meetingLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="primary-button"
+                >
+                  Join Meeting
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => navigate("/sessions")}
+                >
+                  View Details
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="dashboard-empty">
+            <h3>No upcoming sessions</h3>
+            <p>
+              Schedule a session from your accepted skill exchange
+              requests.
+            </p>
+
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => navigate("/sessions")}
+            >
+              Go to Sessions
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="dashboard-section">
+        <div className="section-heading-row">
+          <div>
+            <h2>Session History</h2>
+            <p>Your recently completed or cancelled exchanges.</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="dashboard-empty">
+            Loading session history...
+          </div>
+        ) : completedSessions.length === 0 &&
+          cancelledSessions.length === 0 ? (
+          <div className="dashboard-empty">
+            <h3>No session history</h3>
+            <p>
+              Completed and cancelled sessions will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="session-history-list">
+            {[
+              ...completedSessions,
+              ...cancelledSessions,
+            ]
+              .sort(
+                (a, b) =>
+                  new Date(b.scheduledAt).getTime() -
+                  new Date(a.scheduledAt).getTime()
+              )
+              .slice(0, 5)
+              .map((session) => (
+                <div
+                  className="session-history-card"
+                  key={session.id}
+                >
+                  <div>
+                    <span
+                      className={`session-status ${session.status}`}
+                    >
+                      {session.status}
+                    </span>
+
+                    <h3>{session.skillName}</h3>
+
+                    <p>
+                      {formatDateTime(session.scheduledAt)}
+                    </p>
+
+                    <p>
+                      {session.type === "online"
+                        ? "Online"
+                        : "Offline"}{" "}
+                      · {session.duration} minutes
+                    </p>
+                  </div>
+
+                  <div className="session-history-participant">
+                    <span>Teacher</span>
+                    <strong>{session.teacherName}</strong>
+
+                    <span>Learner</span>
+                    <strong>{session.learnerName}</strong>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default Dashboard;
