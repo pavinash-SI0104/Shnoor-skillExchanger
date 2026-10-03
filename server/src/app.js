@@ -11,10 +11,16 @@ const authenticateUser = require("./middleware/auth");
 
 const app = express();
 
-// Security
+// ==============================
+// SECURITY
+// ==============================
+
 app.use(helmet());
 
+// ==============================
 // CORS
+// ==============================
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
@@ -22,14 +28,23 @@ app.use(
   })
 );
 
-// Body parsing
+// ==============================
+// BODY PARSING
+// ==============================
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Cookies
+// ==============================
+// COOKIES
+// ==============================
+
 app.use(cookieParser());
 
-// Rate limiting
+// ==============================
+// RATE LIMITING
+// ==============================
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -93,11 +108,9 @@ app.get("/api/auth/me", authenticateUser, (req, res) => {
 app.post("/api/users/profile", authenticateUser, async (req, res) => {
   try {
     const { name, email } = req.body;
-
     const uid = req.user.uid;
 
     const userRef = db.collection("users").doc(uid);
-
     const existingUser = await userRef.get();
 
     if (existingUser.exists) {
@@ -107,6 +120,8 @@ app.post("/api/users/profile", authenticateUser, async (req, res) => {
         user: existingUser.data(),
       });
     }
+
+    const now = new Date().toISOString();
 
     const userProfile = {
       uid,
@@ -131,8 +146,8 @@ app.post("/api/users/profile", authenticateUser, async (req, res) => {
 
       isActive: true,
 
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
 
     await userRef.set(userProfile);
@@ -153,16 +168,14 @@ app.post("/api/users/profile", authenticateUser, async (req, res) => {
 });
 
 // ==============================
-// GET USER PROFILE
+// GET CURRENT USER PROFILE
 // ==============================
 
 app.get("/api/users/profile", authenticateUser, async (req, res) => {
   try {
     const uid = req.user.uid;
 
-    const userRef = db.collection("users").doc(uid);
-
-    const userDoc = await userRef.get();
+    const userDoc = await db.collection("users").doc(uid).get();
 
     if (!userDoc.exists) {
       return res.status(404).json({
@@ -186,7 +199,7 @@ app.get("/api/users/profile", authenticateUser, async (req, res) => {
 });
 
 // ==============================
-// GET USER SKILLS
+// GET CURRENT USER SKILLS
 // ==============================
 
 app.get("/api/users/skills", authenticateUser, async (req, res) => {
@@ -226,7 +239,6 @@ app.get("/api/users/skills", authenticateUser, async (req, res) => {
 app.post("/api/users/skills", authenticateUser, async (req, res) => {
   try {
     const uid = req.user.uid;
-
     const { name, type, level } = req.body;
 
     if (!name || !type || !level) {
@@ -243,19 +255,24 @@ app.post("/api/users/skills", authenticateUser, async (req, res) => {
       });
     }
 
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return res.status(400).json({
+        success: false,
+        message: "Skill name cannot be empty",
+      });
+    }
+
     const skill = {
       id: crypto.randomUUID(),
-      name: name.trim(),
+      name: trimmedName,
       level,
     };
 
-    const field =
-      type === "teach"
-        ? "skillsToTeach"
-        : "skillsToLearn";
+    const field = type === "teach" ? "skillsToTeach" : "skillsToLearn";
 
     const userRef = db.collection("users").doc(uid);
-
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
@@ -266,13 +283,11 @@ app.post("/api/users/skills", authenticateUser, async (req, res) => {
     }
 
     const user = userDoc.data();
-
     const existingSkills = user[field] || [];
 
     const duplicate = existingSkills.some(
       (existingSkill) =>
-        existingSkill.name.toLowerCase() ===
-        name.trim().toLowerCase()
+        existingSkill.name?.toLowerCase() === trimmedName.toLowerCase()
     );
 
     if (duplicate) {
@@ -315,7 +330,6 @@ app.delete(
       const { skillId } = req.params;
 
       const userRef = db.collection("users").doc(uid);
-
       const userDoc = await userRef.get();
 
       if (!userDoc.exists) {
@@ -369,24 +383,30 @@ app.delete(
   }
 );
 
-// Get users for the Discover page
+// ==============================
+// DISCOVER USERS
+// ==============================
+
 app.get("/api/users/discover", authenticateUser, async (req, res) => {
   try {
     const currentUid = req.user.uid;
+
     const snapshot = await db.collection("users").get();
 
     const users = snapshot.docs
       .map((doc) => {
         const user = doc.data();
 
-        // Return only fields intended for a public profile
         return {
           uid: doc.id,
           name: user.name || "",
           role: user.role || "",
           bio: user.bio || "",
           photoURL: user.photoURL || "",
-          location: user.location || { type: "online", city: "" },
+          location: user.location || {
+            type: "online",
+            city: "",
+          },
           expertiseLevel: user.expertiseLevel || "",
           skillsToTeach: user.skillsToTeach || [],
           skillsToLearn: user.skillsToLearn || [],
@@ -394,7 +414,10 @@ app.get("/api/users/discover", authenticateUser, async (req, res) => {
       })
       .filter((user) => user.uid !== currentUid)
       .filter((user) => {
-        const originalUser = snapshot.docs.find((doc) => doc.id === user.uid)?.data();
+        const originalUser = snapshot.docs
+          .find((doc) => doc.id === user.uid)
+          ?.data();
+
         return originalUser?.isActive !== false;
       });
 
@@ -404,6 +427,7 @@ app.get("/api/users/discover", authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error("Discover users error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch users",
@@ -411,10 +435,14 @@ app.get("/api/users/discover", authenticateUser, async (req, res) => {
   }
 });
 
-// Get another user's public profile
+// ==============================
+// GET PUBLIC USER PROFILE
+// ==============================
+
 app.get("/api/users/profile/:uid", authenticateUser, async (req, res) => {
   try {
     const { uid } = req.params;
+
     const userDoc = await db.collection("users").doc(uid).get();
 
     if (!userDoc.exists) {
@@ -433,7 +461,6 @@ app.get("/api/users/profile/:uid", authenticateUser, async (req, res) => {
       });
     }
 
-    // Do not expose the user's email in the public profile response
     res.status(200).json({
       success: true,
       user: {
@@ -442,13 +469,17 @@ app.get("/api/users/profile/:uid", authenticateUser, async (req, res) => {
         role: user.role || "",
         bio: user.bio || "",
         photoURL: user.photoURL || "",
-        location: user.location || { type: "online", city: "" },
+        location: user.location || {
+          type: "online",
+          city: "",
+        },
         expertiseLevel: user.expertiseLevel || "",
         interests: user.interests || [],
       },
     });
   } catch (error) {
     console.error("Get public profile error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch user profile",
@@ -456,10 +487,14 @@ app.get("/api/users/profile/:uid", authenticateUser, async (req, res) => {
   }
 });
 
-// Get another user's skills
+// ==============================
+// GET PUBLIC USER SKILLS
+// ==============================
+
 app.get("/api/users/skills/:uid", authenticateUser, async (req, res) => {
   try {
     const { uid } = req.params;
+
     const userDoc = await db.collection("users").doc(uid).get();
 
     if (!userDoc.exists) {
@@ -485,12 +520,14 @@ app.get("/api/users/skills/:uid", authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error("Get user skills error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch user skills",
     });
   }
 });
+
 // ==============================
 // SEND EXCHANGE REQUEST
 // ==============================
@@ -553,16 +590,11 @@ app.post("/api/users/requests", authenticateUser, async (req, res) => {
       .where("receiverId", "==", receiverId)
       .get();
 
-    const duplicatePendingRequest = existingRequests.docs.some(
-      (doc) => {
-        const request = doc.data();
+    const duplicatePendingRequest = existingRequests.docs.some((doc) => {
+      const request = doc.data();
 
-        return (
-          request.skillId === skillId &&
-          request.status === "pending"
-        );
-      }
-    );
+      return request.skillId === skillId && request.status === "pending";
+    });
 
     if (duplicatePendingRequest) {
       return res.status(409).json({
@@ -596,10 +628,7 @@ app.post("/api/users/requests", authenticateUser, async (req, res) => {
       updatedAt: now,
     };
 
-    await db
-      .collection("exchangeRequests")
-      .doc(requestId)
-      .set(request);
+    await db.collection("exchangeRequests").doc(requestId).set(request);
 
     res.status(201).json({
       success: true,
@@ -615,7 +644,6 @@ app.post("/api/users/requests", authenticateUser, async (req, res) => {
     });
   }
 });
-
 
 // ==============================
 // GET EXCHANGE REQUESTS
@@ -670,7 +698,6 @@ app.get("/api/users/requests", authenticateUser, async (req, res) => {
     });
   }
 });
-
 
 // ==============================
 // UPDATE EXCHANGE REQUEST
@@ -744,122 +771,331 @@ app.patch(
     }
   }
 );
+
 // ==============================
-// GET USER MATCHES
+// CREATE SESSION
 // ==============================
 
-app.get("/api/users/matches", authenticateUser, async (req, res) => {
+app.post("/api/users/sessions", authenticateUser, async (req, res) => {
   try {
     const currentUid = req.user.uid;
 
-    const currentUserDoc = await db
-      .collection("users")
-      .doc(currentUid)
-      .get();
+    const {
+      requestId,
+      type,
+      meetingLink,
+      location,
+      scheduledAt,
+      duration,
+    } = req.body;
 
-    if (!currentUserDoc.exists) {
-      return res.status(404).json({
+    if (!requestId || !type || !scheduledAt || !duration) {
+      return res.status(400).json({
         success: false,
-        message: "User profile not found",
+        message:
+          "Request, session type, scheduled time and duration are required",
       });
     }
 
-    const currentUser = currentUserDoc.data();
-
-    const myTeachingSkills = currentUser.skillsToTeach || [];
-    const myLearningSkills = currentUser.skillsToLearn || [];
-
-    const snapshot = await db.collection("users").get();
-
-    const matches = [];
-
-    snapshot.docs.forEach((doc) => {
-      if (doc.id === currentUid) {
-        return;
-      }
-
-      const user = doc.data();
-
-      if (user.isActive === false) {
-        return;
-      }
-
-      const theirTeachingSkills = user.skillsToTeach || [];
-      const theirLearningSkills = user.skillsToLearn || [];
-
-      // Skills I want to learn that they can teach
-      const theyCanTeachMe = myLearningSkills.filter((mySkill) =>
-        theirTeachingSkills.some(
-          (theirSkill) =>
-            theirSkill.name.toLowerCase() ===
-            mySkill.name.toLowerCase()
-        )
-      );
-
-      // Skills I can teach that they want to learn
-      const iCanTeachThem = myTeachingSkills.filter((mySkill) =>
-        theirLearningSkills.some(
-          (theirSkill) =>
-            theirSkill.name.toLowerCase() ===
-            mySkill.name.toLowerCase()
-        )
-      );
-
-      const possibleMatches =
-        myLearningSkills.length + myTeachingSkills.length;
-
-      const matchingSkills =
-        theyCanTeachMe.length + iCanTeachThem.length;
-
-      const matchPercentage =
-        possibleMatches > 0
-          ? Math.round(
-              (matchingSkills / possibleMatches) * 100
-            )
-          : 0;
-
-      // Only return users with at least one compatible skill
-      if (matchingSkills === 0) {
-        return;
-      }
-
-      matches.push({
-        uid: doc.id,
-        name: user.name || "",
-        role: user.role || "",
-        photoURL: user.photoURL || "",
-        expertiseLevel: user.expertiseLevel || "",
-
-        youCanTeach: iCanTeachThem.map(
-          (skill) => skill.name
-        ),
-
-        theyCanTeach: theyCanTeachMe.map(
-          (skill) => skill.name
-        ),
-
-        matchPercentage,
+    if (!["online", "offline"].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: "Session type must be online or offline",
       });
-    });
+    }
 
-    matches.sort(
-      (a, b) =>
-        b.matchPercentage - a.matchPercentage
+    if (type === "online" && !meetingLink?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Meeting link is required for online sessions",
+      });
+    }
+
+    if (type === "offline" && !location?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Location is required for offline sessions",
+      });
+    }
+
+    const sessionDuration = Number(duration);
+
+    if (
+      !Number.isInteger(sessionDuration) ||
+      sessionDuration < 15 ||
+      sessionDuration > 240
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Duration must be between 15 and 240 minutes",
+      });
+    }
+
+    const scheduledDate = new Date(scheduledAt);
+
+    if (Number.isNaN(scheduledDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid scheduled date and time",
+      });
+    }
+
+    if (scheduledDate.getTime() <= Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: "Session must be scheduled for a future time",
+      });
+    }
+
+    // Get the exchange request
+    const requestRef = db
+      .collection("exchangeRequests")
+      .doc(requestId);
+
+    const requestDoc = await requestRef.get();
+
+    if (!requestDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Exchange request not found",
+      });
+    }
+
+    const request = requestDoc.data();
+
+    // Session can only be created for accepted requests
+    if (request.status !== "accepted") {
+      return res.status(400).json({
+        success: false,
+        message: "A session can only be created for an accepted request",
+      });
+    }
+
+    // Only participants can create a session
+    if (
+      request.senderId !== currentUid &&
+      request.receiverId !== currentUid
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not a participant in this exchange request",
+      });
+    }
+
+    /*
+     * The receiver is the teacher because the request
+     * was sent for one of the receiver's teaching skills.
+     */
+    const teacherId = request.receiverId;
+    const learnerId = request.senderId;
+
+    // Prevent multiple scheduled sessions for the same request
+    const existingSessions = await db
+      .collection("sessions")
+      .where("requestId", "==", requestId)
+      .get();
+
+    const hasScheduledSession = existingSessions.docs.some(
+      (doc) => doc.data().status === "scheduled"
     );
 
-    res.status(200).json({
+    if (hasScheduledSession) {
+      return res.status(409).json({
+        success: false,
+        message: "A scheduled session already exists for this request",
+      });
+    }
+
+    const teacherDoc = await db
+      .collection("users")
+      .doc(teacherId)
+      .get();
+
+    const learnerDoc = await db
+      .collection("users")
+      .doc(learnerId)
+      .get();
+
+    if (!teacherDoc.exists || !learnerDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Session participant profile not found",
+      });
+    }
+
+    const teacher = teacherDoc.data();
+    const learner = learnerDoc.data();
+
+    const sessionId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const session = {
+      id: sessionId,
+
+      requestId,
+
+      teacherId,
+      learnerId,
+
+      teacherName: teacher.name || request.receiverName || "",
+      learnerName: learner.name || request.senderName || "",
+
+      skillId: request.skillId,
+      skillName: request.skillName,
+
+      type,
+
+      meetingLink:
+        type === "online" ? meetingLink.trim() : "",
+
+      location:
+        type === "offline" ? location.trim() : "",
+
+      scheduledAt: scheduledDate.toISOString(),
+
+      duration: sessionDuration,
+
+      status: "scheduled",
+
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db
+      .collection("sessions")
+      .doc(sessionId)
+      .set(session);
+
+    return res.status(201).json({
       success: true,
-      matches,
+      message: "Session created successfully",
+      session,
     });
   } catch (error) {
-    console.error("Get matches error:", error);
+    console.error("Create session error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to generate matches",
+      message: "Failed to create session",
     });
   }
 });
+
+// ==============================
+// GET USER SESSIONS
+// ==============================
+
+app.get("/api/users/sessions", authenticateUser, async (req, res) => {
+  try {
+    const currentUid = req.user.uid;
+
+    const snapshot = await db
+      .collection("sessions")
+      .get();
+
+    const sessions = snapshot.docs
+      .map((doc) => doc.data())
+      .filter(
+        (session) =>
+          session.teacherId === currentUid ||
+          session.learnerId === currentUid
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.scheduledAt).getTime() -
+          new Date(a.scheduledAt).getTime()
+      );
+
+    return res.status(200).json({
+      success: true,
+      sessions,
+    });
+  } catch (error) {
+    console.error("Get sessions error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch sessions",
+    });
+  }
+});
+
+// ==============================
+// UPDATE SESSION STATUS
+// ==============================
+
+app.patch(
+  "/api/users/sessions/:sessionId",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const currentUid = req.user.uid;
+      const { sessionId } = req.params;
+      const { status } = req.body;
+
+      if (!["completed", "cancelled"].includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid session status",
+        });
+      }
+
+      const sessionRef = db
+        .collection("sessions")
+        .doc(sessionId);
+
+      const sessionDoc = await sessionRef.get();
+
+      if (!sessionDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "Session not found",
+        });
+      }
+
+      const session = sessionDoc.data();
+
+      // Only participants can update a session
+      if (
+        session.teacherId !== currentUid &&
+        session.learnerId !== currentUid
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to update this session",
+        });
+      }
+
+      if (session.status !== "scheduled") {
+        return res.status(400).json({
+          success: false,
+          message: "This session has already been processed",
+        });
+      }
+
+      await sessionRef.update({
+        status,
+        updatedAt: new Date().toISOString(),
+      });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          status === "completed"
+            ? "Session marked as completed"
+            : "Session cancelled successfully",
+      });
+    } catch (error) {
+      console.error("Update session error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update session",
+      });
+    }
+  }
+);
+
 // ==============================
 // AI SKILL MATCHES
 // ==============================
@@ -1013,14 +1249,19 @@ app.get("/api/users/matches", authenticateUser, async (req, res) => {
             photoURL: candidate.photoURL || "",
             expertiseLevel:
               candidate.expertiseLevel || "",
+
             youCanTeach: candidate.ICanTeachThem.map(
               (skill) => skill.name
             ),
+
             theyCanTeach: candidate.theyCanTeachMe.map(
               (skill) => skill.name
             ),
+
             matchPercentage: Math.round(aiMatch.score),
+
             reason: aiMatch.reason,
+
             aiGenerated: true,
           };
         })
@@ -1063,15 +1304,20 @@ app.get("/api/users/matches", authenticateUser, async (req, res) => {
           photoURL: candidate.photoURL || "",
           expertiseLevel:
             candidate.expertiseLevel || "",
+
           youCanTeach: candidate.ICanTeachThem.map(
             (skill) => skill.name
           ),
+
           theyCanTeach: candidate.theyCanTeachMe.map(
             (skill) => skill.name
           ),
+
           matchPercentage,
+
           reason:
             "This user has skills that overlap with your learning or teaching goals.",
+
           aiGenerated: false,
         };
       })
@@ -1094,4 +1340,5 @@ app.get("/api/users/matches", authenticateUser, async (req, res) => {
     });
   }
 });
+
 module.exports = app;
