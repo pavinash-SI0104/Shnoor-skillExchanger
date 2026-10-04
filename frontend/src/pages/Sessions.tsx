@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/api";
-
+import {auth} from "../config/firebase";
 interface ExchangeRequest {
   id: string;
   senderId: string;
@@ -79,12 +79,24 @@ function Sessions() {
   }, []);
 
   const acceptedRequests = useMemo(
-    () => requests.filter((request) => request.status === "accepted"),
-    [requests]
+    () => {
+      const scheduledRequestIds = new Set(
+        sessions
+          .filter((session) => session.status === "scheduled")
+          .map((session) => session.requestId)
+      );
+      return requests.filter((request) => request.status === "accepted" && !scheduledRequestIds.has(request.id));
+    },
+    [requests, sessions]
   );
 
   const scheduledSessions = useMemo(
-    () => sessions.filter((session) => session.status === "scheduled"),
+    () => sessions.filter((session) => session.status === "scheduled")
+    .sort(
+      (a, b) =>
+        new Date(a.scheduledAt).getTime() -
+        new Date(b.scheduledAt).getTime()
+    ),
     [sessions]
   );
 
@@ -129,6 +141,12 @@ function Sessions() {
       setError("Please select a date and time.");
       return;
     }
+    const selectedDate = new Date(scheduledAt);
+
+if (selectedDate <= new Date()) {
+  setError("Please select a future date and time.");
+  return;
+}
 
     if (type === "online" && !meetingLink.trim()) {
       setError("Please enter a meeting link for an online session.");
@@ -219,8 +237,15 @@ function Sessions() {
   };
 
   const getOtherParticipant = (session: Session) => {
-    const names = `${session.teacherName} and ${session.learnerName}`;
-    return names;
+    const currentUserId = auth.currentUser?.uid;
+
+    if (currentUserId === session.teacherId) {
+      return session.learnerName;
+    }
+    if (currentUserId === session.learnerId) {
+      return session.teacherName;
+    }
+    return `${session.teacherName} and ${session.learnerName}`;
   };
 
   return (
@@ -356,6 +381,7 @@ function Sessions() {
                     id="session-date"
                     type="datetime-local"
                     value={scheduledAt}
+                    min={new Date().toISOString().slice(0, 16)}
                     onChange={(event) =>
                       setScheduledAt(event.target.value)
                     }

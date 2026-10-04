@@ -1,165 +1,142 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api/api";
 
-interface WishlistUser {
-  id: number;
-  name: string;
-  role: string;
-  skills: string[];
-  rating: number;
+interface WishlistItem {
+  id: string;
+  targetUserId: string;
+  skillId: string;
+  skillName: string;
+  createdAt: string;
 }
 
 function Wishlist() {
-  const [wishlist, setWishlist] = useState<WishlistUser[]>([
-    {
-      id: 1,
-      name: "Avinash",
-      role: "Full Stack Developer",
-      skills: ["Node.js", "Express", "MongoDB"],
-      rating: 4.8,
-    },
-    {
-      id: 2,
-      name: "Anjali",
-      role: "UI/UX Designer",
-      skills: ["Figma", "UI/UX Design"],
-      rating: 4.9,
-    },
-    {
-      id: 3,
-      name: "Priya",
-      role: "Data Analyst",
-      skills: ["Python", "SQL", "Excel"],
-      rating: 4.7,
-    },
-  ]);
+  const navigate = useNavigate();
 
-  const removeFromWishlist = (id: number) => {
-    setWishlist(
-      wishlist.filter((user) => user.id !== id)
-    );
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchWishlist = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get("/users/wishlist");
+
+      setWishlist(response.data.wishlist || []);
+    } catch (err: unknown) {
+      console.error("Failed to load wishlist:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load wishlist."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    void fetchWishlist();
+  }, []);
+
+  const handleRemove = async (wishlistId: string) => {
+    try {
+      setError("");
+
+      await api.delete(`/users/wishlist/${wishlistId}`);
+
+      setWishlist((current) =>
+        current.filter((item) => item.id !== wishlistId)
+      );
+    } catch (err: unknown) {
+      console.error("Failed to remove wishlist item:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to remove wishlist item."
+      );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <div className="page-heading">
+          <div>
+            <h1>Wishlist</h1>
+            <p>Your saved skills.</p>
+          </div>
+        </div>
+
+        <div className="dashboard-card">
+          <p>Loading wishlist...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
-      {/* Page Header */}
       <div className="page-heading">
         <div>
-          <h1>Wishlist</h1>
-          <p>
-            Keep track of people you may want to exchange skills with.
-          </p>
+          <h1>Wishlist ❤️</h1>
+          <p>Skills you want to explore later.</p>
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="wishlist-summary">
-        <div className="summary-card">
-          <span>Saved Profiles</span>
-          <strong>{wishlist.length}</strong>
+      {error && (
+        <div className="error-message">
+          {error}
         </div>
+      )}
 
-        <div className="summary-card">
-          <span>Available Skills</span>
-          <strong>
-            {wishlist.reduce(
-              (total, user) => total + user.skills.length,
-              0
-            )}
-          </strong>
-        </div>
-
-        <div className="summary-card">
-          <span>Average Rating</span>
-          <strong>
-            {wishlist.length > 0
-              ? (
-                  wishlist.reduce(
-                    (total, user) => total + user.rating,
-                    0
-                  ) / wishlist.length
-                ).toFixed(1)
-              : "0.0"}
-          </strong>
-        </div>
-      </div>
-
-      {/* Wishlist */}
-      <div className="dashboard-card wishlist-card">
-        <div className="card-header">
-          <div>
-            <h2>Saved Profiles</h2>
-            <p>
-              People you have added to your wishlist.
-            </p>
-          </div>
-        </div>
-
+      <div className="dashboard-card">
         {wishlist.length === 0 ? (
-          <div className="empty-wishlist">
-            <div className="empty-wishlist-icon">❤️</div>
-
+          <div className="empty-sessions">
             <h3>Your wishlist is empty</h3>
 
             <p>
-              Discover people and save profiles you are
-              interested in.
+              Save interesting skills from Discover
+              and they will appear here.
             </p>
+
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => navigate("/discover")}
+            >
+              Explore Skills
+            </button>
           </div>
         ) : (
-          <div className="wishlist-grid">
-            {wishlist.map((user) => (
+          <div className="session-list">
+            {wishlist.map((item) => (
               <div
-                className="wishlist-item"
-                key={user.id}
+                className="session-item"
+                key={item.id}
               >
-                <div className="wishlist-user-header">
-                  <div className="wishlist-avatar">
-                    {user.name.charAt(0)}
-                  </div>
-
-                  <div>
-                    <h3>{user.name}</h3>
-                    <p>{user.role}</p>
-                  </div>
+                <div className="session-icon">
+                  ❤️
                 </div>
 
-                <div className="wishlist-rating">
-                  ⭐ {user.rating}
-                </div>
+                <div className="session-info">
+                  <strong>{item.skillName}</strong>
 
-                <div className="wishlist-skills">
-                  <span className="wishlist-label">
-                    Skills
+                  <span>
+                    Saved to your wishlist
                   </span>
-
-                  <div className="wishlist-skill-list">
-                    {user.skills.map((skill) => (
-                      <span
-                        className="wishlist-skill"
-                        key={skill}
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
                 </div>
 
-                <div className="wishlist-actions">
+                <div className="session-actions">
                   <button
-                    className="connect-button"
+                    type="button"
+                    className="reject-button"
                     onClick={() =>
-                      alert(
-                        `Opening ${user.name}'s profile...`
-                      )
-                    }
-                  >
-                    View Profile
-                  </button>
-
-                  <button
-                    className="remove-wishlist-button"
-                    onClick={() =>
-                      removeFromWishlist(user.id)
+                      void handleRemove(item.id)
                     }
                   >
                     Remove

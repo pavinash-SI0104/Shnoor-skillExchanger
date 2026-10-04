@@ -22,7 +22,6 @@ function setupChatSocket(httpServer) {
       }
 
       const decodedToken = await auth.verifyIdToken(token);
-
       socket.user = decodedToken;
 
       next();
@@ -37,20 +36,87 @@ function setupChatSocket(httpServer) {
 
     console.log(`Chat socket connected: ${uid}`);
 
-    // Track online users
+    // Track online connections per user
     const currentConnections = onlineUsers.get(uid) || 0;
     onlineUsers.set(uid, currentConnections + 1);
 
-    // Personal room
+    // Join the user's private room
     socket.join(`user:${uid}`);
 
-    // Tell clients that this user is online
-    io.emit("userOnline", {
-      uid,
+    // Broadcast presence to connected clients
+    io.emit("userOnline", { uid });
+
+    // Send current online users to this newly connected client
+    socket.emit("onlineUsers", {
+      uids: Array.from(onlineUsers.keys()),
     });
 
+    // ---------------------------------------------------------
+    // Verify that a conversation belongs to an accepted request
+    // ---------------------------------------------------------
+    const verifyConversationAccess = async (conversationId) => {
+      const conversationRef = db
+        .collection("conversations")
+        .doc(conversationId);
+
+      const conversationSnapshot = await conversationRef.get();
+
+      if (!conversationSnapshot.exists) {
+        return {
+          allowed: false,
+          message: "Conversation not found",
+        };
+      }
+
+      const conversation = conversationSnapshot.data();
+
+      if (!conversation.requestId) {
+        return {
+          allowed: false,
+          message: "This conversation is not authorized for chat",
+        };
+      }
+
+      if (!conversation.participants?.includes(uid)) {
+        return {
+          allowed: false,
+          message: "You are not authorized to access this conversation",
+        };
+      }
+
+      // Verify the exchange request
+      const requestRef = db
+        .collection("exchangeRequests")
+        .doc(conversation.requestId);
+
+      const requestSnapshot = await requestRef.get();
+
+      if (!requestSnapshot.exists) {
+        return {
+          allowed: false,
+          message: "Exchange request not found",
+        };
+      }
+
+      const request = requestSnapshot.data();
+
+      if (request.status !== "accepted") {
+        return {
+          allowed: false,
+          message: "Chat is available only for accepted requests",
+        };
+      }
+
+      return {
+        allowed: true,
+        conversation,
+      };
+    };
+
+    // ---------------------------------------------------------
     // Join conversation
-    socket.on("joinConversation", async ({ conversationId }) => {
+    // ---------------------------------------------------------
+    socket.on("joinConversation", async ({ conversationId } = {}) => {
       try {
         if (!conversationId) {
           socket.emit("chatError", {
@@ -59,31 +125,11 @@ function setupChatSocket(httpServer) {
           return;
         }
 
-        const conversationRef = db
-          .collection("conversations")
-          .doc(conversationId);
+        const access = await verifyConversationAccess(conversationId);
 
-        const conversationSnapshot = await conversationRef.get();
-
-        if (!conversationSnapshot.exists) {
+        if (!access.allowed) {
           socket.emit("chatError", {
-            message: "Conversation not found",
-          });
-          return;
-        }
-
-        const conversation = conversationSnapshot.data();
-
-        if (!conversation.requestId) {
-          socket.emit("chatError", {
-            message: "This conversation is not authorized for chat",
-          });
-          return;
-        }
-
-        if (!conversation.participants?.includes(uid)) {
-          socket.emit("chatError", {
-            message: "You are not authorized to access this conversation",
+            message: access.message,
           });
           return;
         }
@@ -102,123 +148,145 @@ function setupChatSocket(httpServer) {
       }
     });
 
+    // ---------------------------------------------------------
     // Send message
-    socket.on("sendMessage", async ({ conversationId, text }) => {
-      try {
-        if (!conversationId || !text?.trim()) {
-          socket.emit("chatError", {
-            message: "Conversation ID and message are required",
-          });
-          return;
-        }
-
-        const cleanText = text.trim();
-
-        if (cleanText.length > 2000) {
-          socket.emit("chatError", {
-            message: "Message cannot exceed 2000 characters",
-          });
-          return;
-        }
-
-        const conversationRef = db
-          .collection("conversations")
-          .doc(conversationId);
-
-        const conversationSnapshot = await conversationRef.get();
-
-        if (!conversationSnapshot.exists) {
-          socket.emit("chatError", {
-            message: "Conversation not found",
-          });
-          return;
-        }
-
-        const conversation = conversationSnapshot.data();
-
-        if (!conversation.requestId) {
-          socket.emit("chatError", {
-            message: "This conversation is not authorized for chat",
-          });
-          return;
-        }
-
-        if (!conversation.participants?.includes(uid)) {
-          socket.emit("chatError", {
-            message: "You are not authorized to send messages here",
-          });
-          return;
-        }
-
-        const receiverId = conversation.participants.find(
-          (participantId) => participantId !== uid
-        );
-
-        if (!receiverId) {
-          socket.emit("chatError", {
-            message: "Conversation participant not found",
-          });
-          return;
-        }
-
-        const now = new Date().toISOString();
-
-        const messageRef = db.collection("messages").doc();
-
-        const message = {
-          id: messageRef.id,
-          conversationId,
-          senderId: uid,
-          receiverId,
-          text: cleanText,
-          createdAt: now,
+    // ---------------------------------------------------------
+    socket.on(
+      "sendMessage",
+      async ({ conversationId, text } = {}, callback) => {
+        const respond = (result) => {
+          if (typeof callback === "function") {
+            callback(result);
+          }
         };
 
-        await messageRef.set(message);
+        try {
+          if (
+            !conversationId ||
+            typeof text !== "string" ||
+            !text.trim()
+          ) {
+            respond({
+              success: false,
+              message: "Conversation ID and message are required",
+            });
+            return;
+          }
 
-        const currentUnreadCounts = conversation.unreadCounts || {};
+          const cleanText = text.trim();
 
-        const receiverUnreadCount =
-          Number(currentUnreadCounts[receiverId] || 0) + 1;
+          if (cleanText.length > 2000) {
+            respond({
+              success: false,
+              message: "Message cannot exceed 2000 characters",
+            });
+            return;
+          }
 
-        await conversationRef.update({
-          lastMessage: cleanText,
-          updatedAt: now,
-          [`unreadCounts.${receiverId}`]: receiverUnreadCount,
-          [`unreadCounts.${uid}`]: 0,
-        });
+          // Verify conversation + participant + accepted request
+          const access = await verifyConversationAccess(conversationId);
 
-        // Send message to users currently inside the conversation
-        io.to(`conversation:${conversationId}`).emit(
-          "newMessage",
-          message
-        );
+          if (!access.allowed) {
+            respond({
+              success: false,
+              message: access.message,
+            });
+            return;
+          }
 
-        // Notify receiver
-        io.to(`user:${receiverId}`).emit("conversationUpdated", {
-          conversationId,
-          lastMessage: cleanText,
-          updatedAt: now,
-          unreadCount: receiverUnreadCount,
-        });
-      } catch (error) {
-        console.error("Send message error:", error);
+          const conversation = access.conversation;
 
-        socket.emit("chatError", {
-          message: "Unable to send message",
-        });
+          const receiverId = conversation.participants.find(
+            (participantId) => participantId !== uid
+          );
+
+          if (!receiverId) {
+            respond({
+              success: false,
+              message: "Conversation participant not found",
+            });
+            return;
+          }
+
+          const now = new Date().toISOString();
+          const messageRef = db.collection("messages").doc();
+
+          const message = {
+            id: messageRef.id,
+            conversationId,
+            senderId: uid,
+            receiverId,
+            text: cleanText,
+            createdAt: now,
+          };
+
+          const currentUnreadCounts =
+            conversation.unreadCounts || {};
+
+          const receiverUnreadCount =
+            Number(currentUnreadCounts[receiverId] || 0) + 1;
+
+          // Save message and update conversation together
+          const batch = db.batch();
+
+          batch.set(messageRef, message);
+
+          batch.update(
+            db.collection("conversations").doc(conversationId),
+            {
+              lastMessage: cleanText,
+              updatedAt: now,
+              [`unreadCounts.${receiverId}`]:
+                receiverUnreadCount,
+              [`unreadCounts.${uid}`]: 0,
+            }
+          );
+
+          await batch.commit();
+
+          // Broadcast to clients currently in the conversation room
+          io.to(`conversation:${conversationId}`).emit(
+            "newMessage",
+            message
+          );
+
+          // Notify receiver's private room
+          io.to(`user:${receiverId}`).emit(
+            "conversationUpdated",
+            {
+              conversationId,
+              lastMessage: cleanText,
+              updatedAt: now,
+              unreadCount: receiverUnreadCount,
+            }
+          );
+
+          // Confirm successful Firestore save
+          respond({
+            success: true,
+            messageId: messageRef.id,
+          });
+        } catch (error) {
+          console.error("Send message error:", error);
+
+          respond({
+            success: false,
+            message: "Unable to send message",
+          });
+        }
       }
-    });
+    );
 
+    // ---------------------------------------------------------
+    // Disconnect
+    // ---------------------------------------------------------
     socket.on("disconnect", () => {
       const connections = onlineUsers.get(uid) || 1;
 
       if (connections <= 1) {
         onlineUsers.delete(uid);
 
-        io.emit("userOffline", {
-          uid,
-        });
+        io.emit("userOffline", { uid });
       } else {
         onlineUsers.set(uid, connections - 1);
       }

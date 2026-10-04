@@ -630,6 +630,17 @@ app.post("/api/users/requests", authenticateUser, async (req, res) => {
 
     await db.collection("exchangeRequests").doc(requestId).set(request);
 
+    // Create notification for the receiver
+    await db.collection("notifications").add({
+      userId: receiverId,
+      type: "request",
+      title: "New Skill Exchange Request",
+      message: `${sender.name || "Someone"} sent you a skill exchange request.`,
+      relatedId: requestId,
+      read: false,
+      createdAt: now,
+    });
+
     res.status(201).json({
       success: true,
       message: "Exchange request sent successfully",
@@ -708,9 +719,9 @@ app.patch(
   authenticateUser,
   async (req, res) => {
     try {
-      const uid = req.user.uid;
       const { requestId } = req.params;
       const { status } = req.body;
+      const uid = req.user.uid;
 
       if (!["accepted", "rejected"].includes(status)) {
         return res.status(400).json({
@@ -723,25 +734,26 @@ app.patch(
         .collection("exchangeRequests")
         .doc(requestId);
 
-      const requestDoc = await requestRef.get();
+      const requestSnapshot = await requestRef.get();
 
-      if (!requestDoc.exists) {
+      if (!requestSnapshot.exists) {
         return res.status(404).json({
           success: false,
           message: "Exchange request not found",
         });
       }
 
-      const request = requestDoc.data();
+      const request = requestSnapshot.data();
 
-      // Only the receiver can accept or reject a request
+      // Only the receiver can accept or reject the request
       if (request.receiverId !== uid) {
         return res.status(403).json({
           success: false,
-          message: "You are not authorized to update this request",
+          message: "Only the receiver can update this request",
         });
       }
 
+      // Request must still be pending
       if (request.status !== "pending") {
         return res.status(400).json({
           success: false,
@@ -749,28 +761,86 @@ app.patch(
         });
       }
 
+      const now = new Date().toISOString();
+
       await requestRef.update({
         status,
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
       });
 
-      res.status(200).json({
+      // Create chat conversation automatically after acceptance
+      let conversation = null;
+
+      if (status === "accepted") {
+        const participantIds = [
+          request.senderId,
+          request.receiverId,
+        ].sort();
+
+        const conversationId = participantIds.join("_");
+
+        const conversationRef = db
+          .collection("conversations")
+          .doc(conversationId);
+
+        const conversationSnapshot = await conversationRef.get();
+
+        if (conversationSnapshot.exists) {
+          conversation = conversationSnapshot.data();
+        } else {
+          conversation = {
+            id: conversationId,
+            requestId: request.id,
+
+            participants: participantIds,
+
+            participantNames: {
+              [request.senderId]: request.senderName,
+              [request.receiverId]: request.receiverName,
+            },
+
+            skillId: request.skillId,
+            skillName: request.skillName,
+
+            lastMessage: "",
+
+            unreadCounts: {
+              [request.senderId]: 0,
+              [request.receiverId]: 0,
+            },
+
+            createdAt: now,
+            updatedAt: now,
+          };
+
+          await conversationRef.set(conversation);
+        }
+      }
+
+      return res.status(200).json({
         success: true,
         message:
           status === "accepted"
-            ? "Exchange request accepted"
-            : "Exchange request rejected",
+            ? "Request accepted and conversation created"
+            : "Request rejected",
+        request: {
+          ...request,
+          status,
+          updatedAt: now,
+        },
+        conversation,
       });
     } catch (error) {
-      console.error("Update exchange request error:", error);
+      console.error("Update request error:", error);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        message: "Failed to update exchange request",
+        message: "Failed to update request",
       });
     }
   }
 );
+
 // Create or get an authorized chat conversation
 app.post("/api/users/conversations", authenticateUser, async (req, res) => {
   try {
@@ -870,6 +940,7 @@ app.post("/api/users/conversations", authenticateUser, async (req, res) => {
     });
   }
 });
+
 // Get conversations for the current user
 app.get("/api/users/conversations", authenticateUser, async (req, res) => {
   try {
@@ -901,6 +972,7 @@ app.get("/api/users/conversations", authenticateUser, async (req, res) => {
     });
   }
 });
+
 // Get messages for an authorized conversation
 app.get(
   "/api/users/conversations/:conversationId/messages",
@@ -1266,12 +1338,14 @@ app.patch(
         updatedAt: new Date().toISOString(),
       });
 
+      const statusMessage =
+        status === "completed"
+          ? "Session marked as completed"
+          : "Session cancelled successfully";
+
       return res.status(200).json({
         success: true,
-        message:
-          status === "completed"
-            ? "Session marked as completed"
-            : "Session cancelled successfully",
+        message: statusMessage,
       });
     } catch (error) {
       console.error("Update session error:", error);
@@ -1528,6 +1602,7 @@ app.get("/api/users/matches", authenticateUser, async (req, res) => {
     });
   }
 });
+
 // ==============================
 // GET USER CONVERSATIONS
 // ==============================
@@ -1632,6 +1707,7 @@ app.get(
     }
   }
 );
+
 // Mark conversation messages as read
 app.patch(
   "/api/users/conversations/:conversationId/read",
@@ -1681,4 +1757,278 @@ app.patch(
     }
   }
 );
+
+// ==========================================
+// WISHLIST
+// ==========================================
+
+// Get current user's wishlist
+app.get("/api/users/wishlist", authenticateUser, async (req, res) => {
+  try {
+    const snapshot = await db
+      .collection("wishlists")
+      .where("userId", "==", req.user.uid)
+      .get();
+
+    const wishlist = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.json({ wishlist });
+  } catch (error) {
+    console.error("Get wishlist error:", error);
+    res.status(500).json({
+      message: "Failed to load wishlist.",
+    });
+  }
+});
+
+// Add item to wishlist
+app.post("/api/users/wishlist", authenticateUser, async (req, res) => {
+  try {
+    const { targetUserId, skillId, skillName } = req.body;
+
+    if (!targetUserId || !skillId || !skillName) {
+      return res.status(400).json({
+        message: "User, skill, and skill name are required.",
+      });
+    }
+
+    const existing = await db
+      .collection("wishlists")
+      .where("userId", "==", req.user.uid)
+      .where("targetUserId", "==", targetUserId)
+      .where("skillId", "==", skillId)
+      .get();
+
+    if (!existing.empty) {
+      return res.status(400).json({
+        message: "This skill is already in your wishlist.",
+      });
+    }
+
+    const wishlistRef = db.collection("wishlists").doc();
+
+    const wishlistItem = {
+      id: wishlistRef.id,
+      userId: req.user.uid,
+      targetUserId,
+      skillId,
+      skillName,
+      createdAt: new Date().toISOString(),
+    };
+
+    await wishlistRef.set(wishlistItem);
+
+    res.status(201).json({
+      message: "Added to wishlist.",
+      wishlist: wishlistItem,
+    });
+  } catch (error) {
+    console.error("Add wishlist error:", error);
+    res.status(500).json({
+      message: "Failed to add to wishlist.",
+    });
+  }
+});
+
+// Remove item from wishlist
+app.delete(
+  "/api/users/wishlist/:wishlistId",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const wishlistRef = db
+        .collection("wishlists")
+        .doc(req.params.wishlistId);
+
+      const snapshot = await wishlistRef.get();
+
+      if (!snapshot.exists) {
+        return res.status(404).json({
+          message: "Wishlist item not found.",
+        });
+      }
+
+      const wishlist = snapshot.data();
+
+      if (wishlist.userId !== req.user.uid) {
+        return res.status(403).json({
+          message: "You are not authorized to remove this item.",
+        });
+      }
+
+      await wishlistRef.delete();
+
+      res.json({
+        message: "Removed from wishlist.",
+      });
+    } catch (error) {
+      console.error("Remove wishlist error:", error);
+      res.status(500).json({
+        message: "Failed to remove wishlist item.",
+      });
+    }
+  }
+);
+
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
+
+// Get current user's notifications
+app.get(
+  "/api/users/notifications",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const snapshot = await db
+        .collection("notifications")
+        .where("userId", "==", req.user.uid)
+        .get();
+
+      const notifications = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime()
+        );
+
+      res.json({ notifications });
+    } catch (error) {
+      console.error("Get notifications error:", error);
+
+      res.status(500).json({
+        message: "Failed to load notifications.",
+      });
+    }
+  }
+);
+
+// Get unread notification count
+app.get(
+  "/api/users/notifications/unread-count",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const snapshot = await db
+        .collection("notifications")
+        .where("userId", "==", req.user.uid)
+        .where("read", "==", false)
+        .get();
+
+      res.json({
+        count: snapshot.size,
+      });
+    } catch (error) {
+      console.error(
+        "Get unread notification count error:",
+        error
+      );
+
+      res.status(500).json({
+        message: "Failed to load unread notification count.",
+      });
+    }
+  }
+);
+
+// Mark one notification as read
+app.patch(
+  "/api/users/notifications/:notificationId/read",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const notificationRef = db
+        .collection("notifications")
+        .doc(req.params.notificationId);
+
+      const snapshot = await notificationRef.get();
+
+      if (!snapshot.exists) {
+        return res.status(404).json({
+          message: "Notification not found.",
+        });
+      }
+
+      const notification = snapshot.data();
+
+      if (notification.userId !== req.user.uid) {
+        return res.status(403).json({
+          message: "You are not authorized to update this notification.",
+        });
+      }
+
+      await notificationRef.update({
+        read: true,
+        updatedAt: new Date().toISOString(),
+      });
+
+      res.json({
+        message: "Notification marked as read.",
+      });
+    } catch (error) {
+      console.error(
+        "Mark notification as read error:",
+        error
+      );
+
+      res.status(500).json({
+        message: "Failed to update notification.",
+      });
+    }
+  }
+);
+
+// Mark all notifications as read
+app.patch(
+  "/api/users/notifications/read-all",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const snapshot = await db
+        .collection("notifications")
+        .where("userId", "==", req.user.uid)
+        .where("read", "==", false)
+        .get();
+
+      if (snapshot.empty) {
+        return res.json({
+          message: "All notifications are already read.",
+        });
+      }
+
+      const batch = db.batch();
+      const now = new Date().toISOString();
+
+      snapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          read: true,
+          updatedAt: now,
+        });
+      });
+
+      await batch.commit();
+
+      res.json({
+        message: "All notifications marked as read.",
+      });
+    } catch (error) {
+      console.error(
+        "Mark all notifications as read error:",
+        error
+      );
+
+      res.status(500).json({
+        message: "Failed to update notifications.",
+      });
+    }
+  }
+);
+
 module.exports = app;
