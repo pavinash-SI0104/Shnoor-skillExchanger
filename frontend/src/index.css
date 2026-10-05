@@ -2870,3 +2870,565 @@ grid-template-columns: 1fr;
   margin-bottom: 20px;
 }
 }
+
+/* =========================================
+   GLOBAL MOBILE RESPONSIVE DESIGN
+========================================= */
+
+@media (max-width: 900px) {
+  /* Sidebar */
+  .sidebar {
+    width: 210px;
+  }
+
+  .main-content {
+    margin-left: 210px;
+    width: calc(100% - 210px);
+  }
+
+  .page-content {
+    padding: 22px;
+  }
+
+  /* Dashboard statistics */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Dashboard cards */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Two-column sections */
+  .skills-grid,
+  .discover-grid,
+  .profile-skills-grid,
+  .matches-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Three-column summaries */
+  .session-summary,
+  .request-summary,
+  .notification-summary,
+  .wishlist-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Wishlist */
+  .wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Chat */
+  .chat-container {
+    grid-template-columns: 240px 1fr;
+  }
+}
+
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 768px) {
+  /* Login */
+  .login-container {
+    flex-direction: column;
+  }
+
+  .login-left,
+  .login-right {
+    width: 100%;
+  }
+
+  .login-left {
+    padding: 50px 30px;
+    min-height: 350px;
+  }
+
+  .login-left h1 {
+    font-size: 38px;
+  }
+
+  .login-right {
+    padding: 50px 25px;
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 430px;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 190px;
+  }
+
+  .main-content {
+    margin-left: 190px;
+    width: calc(100% - 190px);
+  }
+
+  .sidebar-logo {
+    padding: 22px 18px;
+    font-size: 21px;
+  }
+
+  .nav-item {
+    padding: 11px 12px;
+    font-size: 14px;
+  }
+
+  .page-content {
+    padding: 20px;
+  }
+
+  /* Topbar */
+  .topbar {
+    padding: 0 20px;
+  }
+
+  .topbar h2 {
+    font-size: 18px;
+  }
+
+  .user-mini small {
+    display: none;
+  }
+
+  /* Statistics */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  /* Page heading */
+  .page-heading {
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .page-heading h1 {
+    font-size: 24px;
+  }
+
+  /* Forms */
+  .session-form-grid,
+  .profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Requests */
+  .exchange-request {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .request-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Notifications */
+  .notification-item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .notification-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Wishlist */
+  .wishlist-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Chat */
+  .chat-container {
+    grid-template-columns: 1fr;
+  }
+
+  .conversation-panel {
+    display: none;
+  }
+
+  .chat-page {
+    min-height: 500px;
+  }
+
+  .message-bubble {
+    max-width: 80%;
+  }
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+  .page-content {
+    padding: 15px;
+  }
+
+  /* Sidebar becomes normal-width mobile layout */
+  .sidebar {
+    width: 70px;
+  }
+
+  .main-content {
+    margin-left: 70px;
+    width: calc(100% - 70px);
+  }
+
+  .sidebar-logo {
+    padding: 20px 10px;
+    text-align: center;
+    font-size: 0;
+  }
+
+  .sidebar-logo::before {
+    content: "SE";
+    font-size: 20px;
+    font-weight: bold;
+    color: #4f9cf9;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: 12px 8px;
+    font-size: 0;
+  }
+
+  .nav-item svg {
+    font-size: 18px;
+  }
+
+  .logout-button {
+    justify-content: center;
+    padding: 12px 8px;
+    font-size: 0;
+  }
+
+  /* Topbar */
+  .topbar {
+    height: 65px;
+    padding: 0 15px;
+  }
+
+  .topbar h2 {
+    font-size: 16px;
+  }
+
+  .topbar-right {
+    gap: 8px;
+  }
+
+  .user-mini strong {
+    display: none;
+  }
+
+  .notification-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Page heading */
+  .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-heading h1 {
+    font-size: 22px;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+
+  /* Statistics */
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 18px;
+  }
+
+  /* Cards */
+  .dashboard-card,
+  .dashboard-section {
+    padding: 18px;
+  }
+
+  /* Session summary */
+  .session-summary,
+  .request-summary,
+  .notification-summary,
+  .wishlist-summary {
+    grid-template-columns: 1fr;
+  }
+
+  /* Session */
+  .session-item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .session-status {
+    width: 100%;
+    margin-left: 0;
+    align-items: flex-start;
+  }
+
+  /* Profile */
+  .profile-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-main {
+    align-items: flex-start;
+  }
+
+  .profile-main-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-header-actions {
+    width: 100%;
+  }
+
+  .profile-header-actions button {
+    width: 100%;
+  }
+
+  /* Requests */
+  .exchange-request-info {
+    min-width: calc(100% - 70px);
+  }
+
+  .request-actions {
+    justify-content: flex-start;
+  }
+
+  /* Match */
+  .match-exchange {
+    flex-direction: column;
+  }
+
+  .match-skill {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .match-arrow {
+    transform: rotate(90deg);
+  }
+
+  /* Chat */
+  .message-bubble {
+    max-width: 90%;
+  }
+
+  .message-input-area {
+    padding: 10px;
+  }
+
+  .message-input-area button {
+    padding: 0 14px;
+  }
+
+  /* Notifications */
+  .notification-content {
+    min-width: calc(100% - 65px);
+  }
+
+  /* Buttons */
+  .session-form-actions {
+    flex-direction: column;
+  }
+
+  .session-form-actions button {
+    width: 100%;
+  }
+}
+
+
+/* =========================================
+   VERY SMALL MOBILE
+========================================= */
+
+@media (max-width: 400px) {
+  .sidebar {
+    width: 58px;
+  }
+
+  .main-content {
+    margin-left: 58px;
+    width: calc(100% - 58px);
+  }
+
+  .page-content {
+    padding: 12px;
+  }
+
+  .topbar {
+    padding: 0 10px;
+  }
+
+  .topbar h2 {
+    font-size: 14px;
+  }
+
+  .stat-card {
+    gap: 10px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .message-bubble {
+    max-width: 95%;
+  }
+}
+
+.footer-links {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+}
+
+.footer-links a {
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   LEGAL PAGES
+========================= */
+
+.legal-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 60px 20px;
+  font-family: Arial, sans-serif;
+}
+
+.legal-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 50px 60px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.legal-container h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 38px;
+}
+
+.legal-updated {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 10px 0 40px;
+}
+
+.legal-container section {
+  margin-bottom: 30px;
+}
+
+.legal-container h2 {
+  color: #2563eb;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.legal-container p {
+  color: #4b5563;
+  font-size: 16px;
+  line-height: 1.8;
+  margin: 0;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .legal-page {
+    padding: 30px 15px;
+  }
+
+  .legal-container {
+    padding: 30px 20px;
+    border-radius: 12px;
+  }
+
+  .legal-container h1 {
+    font-size: 30px;
+  }
+
+  .legal-container h2 {
+    font-size: 19px;
+  }
+
+  .legal-container p {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+}
+
+/* =========================
+   TERMS CHECKBOX
+========================= */
+
+.terms-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.terms-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.terms-checkbox label {
+  cursor: pointer;
+}
+
+.terms-checkbox a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.terms-checkbox a:hover {
+  text-decoration: underline;
+}
