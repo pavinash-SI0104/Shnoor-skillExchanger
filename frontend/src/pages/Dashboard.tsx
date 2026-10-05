@@ -63,6 +63,8 @@ function Dashboard() {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [resumeError, setResumeError] = useState("");
 
+  const [showAllSkills, setShowAllSkills] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -163,6 +165,9 @@ function Dashboard() {
       }));
 
       setResumeFile(null);
+
+      // Start with only the first two skills visible
+      setShowAllSkills(false);
     } catch (err: any) {
       console.error("Resume upload error:", err);
 
@@ -381,9 +386,12 @@ function Dashboard() {
           <div className="dashboard-card">
             {profile.skillsToTeach &&
             profile.skillsToTeach.length > 0 ? (
-              <div className="skill-tags">
-                {profile.skillsToTeach.map(
-                  (skill, index) => (
+              <>
+                <div className="skill-tags">
+                  {(showAllSkills
+                    ? profile.skillsToTeach
+                    : profile.skillsToTeach.slice(0, 2)
+                  ).map((skill, index) => (
                     <span
                       className="skill-tag"
                       key={
@@ -395,9 +403,31 @@ function Dashboard() {
                       {skill.level &&
                         ` · ${skill.level}`}
                     </span>
-                  )
+                  ))}
+                </div>
+
+                {profile.skillsToTeach.length > 2 && (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() =>
+                      setShowAllSkills(
+                        (previous) => !previous
+                      )
+                    }
+                    style={{
+                      marginTop: "15px",
+                    }}
+                  >
+                    {showAllSkills
+                      ? "Show Less"
+                      : `Show More (${
+                          profile.skillsToTeach.length -
+                          2
+                        })`}
+                  </button>
                 )}
-              </div>
+              </>
             ) : (
               <div className="dashboard-empty">
                 <h3>

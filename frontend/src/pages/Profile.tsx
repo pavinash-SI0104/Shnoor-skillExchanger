@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { updateProfile } from "firebase/auth";
 import { auth } from "../config/firebase";
 import api from "../api/api";
@@ -8,10 +12,12 @@ interface UserProfile {
   name: string;
   email: string;
   role?: string;
-  location?: string | {
-    type?: string;
-    city?: string;
-  };
+  location?:
+    | string
+    | {
+        type?: string;
+        city?: string;
+      };
   photoURL?: string;
   bio?: string;
 }
@@ -31,6 +37,14 @@ function Profile() {
   const [role, setRole] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
+  const [photoURL, setPhotoURL] = useState("");
+
+  // Profile picture
+  const [selectedPhoto, setSelectedPhoto] =
+    useState<File | null>(null);
+
+  const [photoPreview, setPhotoPreview] =
+    useState("");
 
   const [skills, setSkills] = useState<Skill[]>([]);
 
@@ -56,7 +70,9 @@ function Profile() {
       const firebaseUser = auth.currentUser;
 
       if (!firebaseUser) {
-        setError("Please log in to view your profile.");
+        setError(
+          "Please log in to view your profile."
+        );
         return;
       }
 
@@ -89,6 +105,16 @@ function Profile() {
       );
 
       setBio(profile.bio || "");
+
+      setPhotoURL(
+        profile.photoURL ||
+          firebaseUser.photoURL ||
+          ""
+      );
+
+      // Reset temporary photo preview
+      setPhotoPreview("");
+      setSelectedPhoto(null);
 
       // Load skills
       const skillsResponse = await api.get(
@@ -136,6 +162,45 @@ function Profile() {
   };
 
   // =========================
+  // PROFILE PHOTO
+  // =========================
+
+  const handlePhotoChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith("image/")) {
+      setError(
+        "Please select a valid image file."
+      );
+      return;
+    }
+
+    // Check file size - 5 MB maximum
+    if (file.size > 5 * 1024 * 1024) {
+      setError(
+        "Profile picture must be less than 5 MB."
+      );
+      return;
+    }
+
+    setError("");
+    setSelectedPhoto(file);
+
+    // Create preview
+    const previewURL =
+      URL.createObjectURL(file);
+
+    setPhotoPreview(previewURL);
+  };
+
+  // =========================
   // SAVE PROFILE
   // =========================
 
@@ -158,6 +223,15 @@ function Profile() {
         return;
       }
 
+      /*
+       * NOTE:
+       * selectedPhoto is currently used
+       * for preview only.
+       *
+       * Permanent photo upload will be
+       * connected separately.
+       */
+
       const profileData: UserProfile = {
         uid: firebaseUser.uid,
         name: name.trim(),
@@ -165,6 +239,7 @@ function Profile() {
         role: role.trim(),
         location: location.trim(),
         bio: bio.trim(),
+        photoURL: photoURL,
       };
 
       // Update Firebase display name
@@ -186,11 +261,13 @@ function Profile() {
       setName(profileData.name);
       setEmail(profileData.email);
       setRole(profileData.role ?? "");
+
       setLocation(
         typeof profileData.location === "string"
           ? profileData.location
           : profileData.location?.city || ""
       );
+
       setBio(profileData.bio ?? "");
 
       setIsEditing(false);
@@ -223,7 +300,9 @@ function Profile() {
     setError("");
     setIsEditing(false);
 
-    // Reload original values
+    setSelectedPhoto(null);
+    setPhotoPreview("");
+
     loadProfile();
   };
 
@@ -249,6 +328,7 @@ function Profile() {
         <div className="page-heading">
           <div>
             <h1>My Profile</h1>
+
             <p>
               Loading your profile...
             </p>
@@ -330,11 +410,121 @@ function Profile() {
       {/* PROFILE HEADER */}
 
       <div className="dashboard-card profile-main-card">
-        <div className="profile-main-header">
-          <div className="profile-large-avatar">
-            {name.charAt(0).toUpperCase() ||
-              "U"}
+        <div
+          className="profile-main-header"
+          style={{
+            alignItems: "center",
+          }}
+        >
+          {/* PROFILE PHOTO */}
+
+          <div
+            style={{
+              width: "120px",
+              minWidth: "120px",
+              textAlign: "center",
+            }}
+          >
+            {/* SMALL AVATAR */}
+
+            <div
+              className="profile-large-avatar"
+              style={{
+                width: "100px",
+                height: "100px",
+                minWidth: "100px",
+                maxWidth: "100px",
+                borderRadius: "50%",
+                overflow: "hidden",
+                margin: "0 auto",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {photoPreview || photoURL ? (
+                <img
+                  src={
+                    photoPreview || photoURL
+                  }
+                  alt={
+                    name || "Profile"
+                  }
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                <span>
+                  {name
+                    .charAt(0)
+                    .toUpperCase() || "U"}
+                </span>
+              )}
+            </div>
+
+            {/* PHOTO SELECT BUTTON */}
+
+            {isEditing && (
+              <div
+                style={{
+                  marginTop: "10px",
+                }}
+              >
+                <label
+                  htmlFor="profile-photo"
+                  className="secondary-button"
+                  style={{
+                    display: "inline-block",
+                    cursor: "pointer",
+                    padding: "7px 10px",
+                    fontSize: "12px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  📷 Choose Photo
+                </label>
+
+                <input
+                  id="profile-photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={
+                    handlePhotoChange
+                  }
+                  style={{
+                    display: "none",
+                  }}
+                  disabled={saving}
+                />
+
+                {selectedPhoto && (
+                  <p
+                    style={{
+                      fontSize: "10px",
+                      marginTop: "6px",
+                      marginBottom: "0",
+                      opacity: 0.7,
+                      maxWidth: "120px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                    title={
+                      selectedPhoto.name
+                    }
+                  >
+                    {selectedPhoto.name}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* PROFILE INFORMATION */}
 
           <div className="profile-main-info">
             <h2>
@@ -376,6 +566,7 @@ function Profile() {
         </div>
 
         <div className="profile-form-grid">
+
           {/* NAME */}
 
           <div className="form-group">
@@ -389,7 +580,9 @@ function Profile() {
                 type="text"
                 value={name}
                 onChange={(event) =>
-                  setName(event.target.value)
+                  setName(
+                    event.target.value
+                  )
                 }
                 disabled={saving}
               />
@@ -426,7 +619,9 @@ function Profile() {
                 placeholder="Example: Frontend Developer"
                 value={role}
                 onChange={(event) =>
-                  setRole(event.target.value)
+                  setRole(
+                    event.target.value
+                  )
                 }
                 disabled={saving}
               />
@@ -459,7 +654,8 @@ function Profile() {
               />
             ) : (
               <div className="profile-value">
-                {location || "Not provided"}
+                {location ||
+                  "Not provided"}
               </div>
             )}
           </div>
@@ -477,7 +673,9 @@ function Profile() {
               id="profile-bio"
               value={bio}
               onChange={(event) =>
-                setBio(event.target.value)
+                setBio(
+                  event.target.value
+                )
               }
               rows={4}
               placeholder="Tell other users a little about yourself..."
@@ -485,7 +683,8 @@ function Profile() {
             />
           ) : (
             <div className="profile-value profile-bio">
-              {bio || "No bio added yet."}
+              {bio ||
+                "No bio added yet."}
             </div>
           )}
         </div>
@@ -494,6 +693,7 @@ function Profile() {
       {/* SKILLS */}
 
       <div className="profile-skills-grid">
+
         {/* TEACHING SKILLS */}
 
         <div className="dashboard-card profile-section">
@@ -511,7 +711,8 @@ function Profile() {
           </div>
 
           <div className="profile-skill-list">
-            {teachingSkills.length === 0 ? (
+            {teachingSkills.length ===
+            0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">
                   ⭐
@@ -557,7 +758,8 @@ function Profile() {
           </div>
 
           <div className="profile-skill-list">
-            {learningSkills.length === 0 ? (
+            {learningSkills.length ===
+            0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">
                   📚
@@ -604,6 +806,7 @@ function Profile() {
         </div>
 
         <div className="profile-activity-grid">
+
           <div className="activity-item">
             <strong>
               {skills.length}
@@ -637,6 +840,7 @@ function Profile() {
               Reviews
             </span>
           </div>
+
         </div>
       </div>
     </div>

@@ -39,19 +39,37 @@ function Discover() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  /*
+   * ======================================
+   * SHOW MORE / SHOW LESS
+   * ======================================
+   *
+   * Stores which users have expanded
+   * their teaching or learning skills.
+   */
+
+  const [expandedTeachSkills, setExpandedTeachSkills] =
+    useState<string[]>([]);
+
+  const [expandedLearnSkills, setExpandedLearnSkills] =
+    useState<string[]>([]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const [usersResponse, wishlistResponse] = await Promise.all([
-          api.get("/users/discover"),
-          api.get("/users/wishlist"),
-        ]);
+        const [usersResponse, wishlistResponse] =
+          await Promise.all([
+            api.get("/users/discover"),
+            api.get("/users/wishlist"),
+          ]);
 
         setUsers(usersResponse.data.users || []);
-        setWishlist(wishlistResponse.data.wishlist || []);
+        setWishlist(
+          wishlistResponse.data.wishlist || []
+        );
       } catch (err: unknown) {
         setError(
           err instanceof Error
@@ -77,8 +95,12 @@ function Discover() {
         user.role || "",
         user.bio || "",
         user.location?.city || "",
-        ...user.skillsToTeach.map((skill) => skill.name),
-        ...user.skillsToLearn.map((skill) => skill.name),
+        ...user.skillsToTeach.map(
+          (skill) => skill.name
+        ),
+        ...user.skillsToLearn.map(
+          (skill) => skill.name
+        ),
       ]
         .join(" ")
         .toLowerCase();
@@ -87,7 +109,10 @@ function Discover() {
     });
   }, [users, search]);
 
-  const isWishlisted = (userId: string, skillId: string) => {
+  const isWishlisted = (
+    userId: string,
+    skillId: string
+  ) => {
     return wishlist.some(
       (item) =>
         item.targetUserId === userId &&
@@ -136,7 +161,10 @@ function Discover() {
         ]);
       }
     } catch (err: unknown) {
-      console.error("Failed to update wishlist:", err);
+      console.error(
+        "Failed to update wishlist:",
+        err
+      );
 
       setError(
         err instanceof Error
@@ -146,13 +174,43 @@ function Discover() {
     }
   };
 
+  /*
+   * ======================================
+   * TOGGLE TEACHING SKILLS
+   * ======================================
+   */
+
+  const toggleTeachSkills = (userId: string) => {
+    setExpandedTeachSkills((current) =>
+      current.includes(userId)
+        ? current.filter((id) => id !== userId)
+        : [...current, userId]
+    );
+  };
+
+  /*
+   * ======================================
+   * TOGGLE LEARNING SKILLS
+   * ======================================
+   */
+
+  const toggleLearnSkills = (userId: string) => {
+    setExpandedLearnSkills((current) =>
+      current.includes(userId)
+        ? current.filter((id) => id !== userId)
+        : [...current, userId]
+    );
+  };
+
   return (
     <div>
       <div className="page-heading">
         <div>
           <h1>Discover</h1>
+
           <p>
-            Find people who can teach you the skills you want to learn.
+            Find people who can teach you the
+            skills you want to learn.
           </p>
         </div>
       </div>
@@ -175,6 +233,7 @@ function Discover() {
       ) : error ? (
         <div className="dashboard-card no-results">
           <h3>Unable to load users</h3>
+
           <p>{error}</p>
 
           <button
@@ -202,140 +261,224 @@ function Discover() {
         </div>
       ) : (
         <div className="discover-grid">
-          {filteredUsers.map((user) => (
-            <div
-              className="dashboard-card user-card"
-              key={user.uid}
-            >
-              <div className="user-card-header">
-                {user.photoURL ? (
-                  <img
-                    className="discover-avatar"
-                    src={user.photoURL}
-                    alt={`${user.name}'s profile`}
-                  />
-                ) : (
-                  <div className="discover-avatar">
-                    {user.name.charAt(0).toUpperCase() ||
-                      "U"}
+          {filteredUsers.map((user) => {
+            const showAllTeachSkills =
+              expandedTeachSkills.includes(user.uid);
+
+            const showAllLearnSkills =
+              expandedLearnSkills.includes(user.uid);
+
+            const visibleTeachSkills =
+              showAllTeachSkills
+                ? user.skillsToTeach
+                : user.skillsToTeach.slice(0, 2);
+
+            const visibleLearnSkills =
+              showAllLearnSkills
+                ? user.skillsToLearn
+                : user.skillsToLearn.slice(0, 2);
+
+            return (
+              <div
+                className="dashboard-card user-card"
+                key={user.uid}
+              >
+                <div className="user-card-header">
+                  {user.photoURL ? (
+                    <img
+                      className="discover-avatar"
+                      src={user.photoURL}
+                      alt={`${user.name}'s profile`}
+                    />
+                  ) : (
+                    <div className="discover-avatar">
+                      {user.name
+                        .charAt(0)
+                        .toUpperCase() || "U"}
+                    </div>
+                  )}
+
+                  <div>
+                    <h2>
+                      {user.name || "Unnamed User"}
+                    </h2>
+
+                    <p>
+                      {user.role ||
+                        "Skill Exchanger"}
+                    </p>
                   </div>
+                </div>
+
+                {user.location?.city && (
+                  <p className="user-location">
+                    <span>📍</span>{" "}
+                    {user.location.city}
+                  </p>
                 )}
 
-                <div>
-                  <h2>
-                    {user.name || "Unnamed User"}
-                  </h2>
-
-                  <p>
-                    {user.role || "Skill Exchanger"}
+                {user.bio && (
+                  <p className="user-bio">
+                    {user.bio}
                   </p>
-                </div>
-              </div>
+                )}
 
-              {user.location?.city && (
-                <p className="user-location">
-                  <span>📍</span>{" "}
-                  {user.location.city}
-                </p>
-              )}
+                {/* ======================================
+                    CAN TEACH
+                ====================================== */}
 
-              {user.bio && (
-                <p className="user-bio">
-                  {user.bio}
-                </p>
-              )}
+                <div className="skill-section">
+                  <strong>Can Teach</strong>
 
-              <div className="skill-section">
-                <strong>Can Teach</strong>
-
-                <div className="skill-tags">
-                  {user.skillsToTeach.length > 0 ? (
-                    user.skillsToTeach.map(
-                      (skill, index) => (
-                        <div
-                          className="skill-tag teach-tag"
-                          key={
-                            skill.id ||
-                            `${skill.name}-${index}`
-                          }
-                        >
-                          <span>{skill.name}</span>
-
-                          {skill.id && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void toggleWishlist(
-                                  user,
-                                  skill
-                                )
-                              }
-                              title={
-                                isWishlisted(
-                                  user.uid,
-                                  skill.id
-                                )
-                                  ? "Remove from wishlist"
-                                  : "Add to wishlist"
+                  <div className="skill-tags">
+                    {user.skillsToTeach.length > 0 ? (
+                      <>
+                        {visibleTeachSkills.map(
+                          (skill, index) => (
+                            <div
+                              className="skill-tag teach-tag"
+                              key={
+                                skill.id ||
+                                `${skill.name}-${index}`
                               }
                             >
-                              {isWishlisted(
-                                user.uid,
-                                skill.id
+                              <span>
+                                {skill.name}
+                              </span>
+
+                              {skill.id && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void toggleWishlist(
+                                      user,
+                                      skill
+                                    )
+                                  }
+                                  title={
+                                    isWishlisted(
+                                      user.uid,
+                                      skill.id
+                                    )
+                                      ? "Remove from wishlist"
+                                      : "Add to wishlist"
+                                  }
+                                >
+                                  {isWishlisted(
+                                    user.uid,
+                                    skill.id
+                                  )
+                                    ? "❤️"
+                                    : "♡"}
+                                </button>
+                              )}
+                            </div>
+                          )
+                        )}
+
+                        {user.skillsToTeach.length >
+                          2 && (
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              toggleTeachSkills(
+                                user.uid
                               )
-                                ? "❤️"
-                                : "♡"}
-                            </button>
-                          )}
-                        </div>
-                      )
-                    )
-                  ) : (
-                    <span className="empty-skill-text">
-                      No teaching skills added
-                    </span>
-                  )}
+                            }
+                            style={{
+                              marginTop: "10px",
+                            }}
+                          >
+                            {showAllTeachSkills
+                              ? "Show Less"
+                              : `Show More (${
+                                  user.skillsToTeach
+                                    .length - 2
+                                })`}
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <span className="empty-skill-text">
+                        No teaching skills added
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="skill-section">
-                <strong>Wants to Learn</strong>
+                {/* ======================================
+                    WANTS TO LEARN
+                ====================================== */}
 
-                <div className="skill-tags">
-                  {user.skillsToLearn.length > 0 ? (
-                    user.skillsToLearn.map(
-                      (skill, index) => (
-                        <span
-                          className="skill-tag learn-tag"
-                          key={
-                            skill.id ||
-                            `${skill.name}-${index}`
-                          }
-                        >
-                          {skill.name}
-                        </span>
-                      )
-                    )
-                  ) : (
-                    <span className="empty-skill-text">
-                      No learning skills added
-                    </span>
-                  )}
+                <div className="skill-section">
+                  <strong>Wants to Learn</strong>
+
+                  <div className="skill-tags">
+                    {user.skillsToLearn.length > 0 ? (
+                      <>
+                        {visibleLearnSkills.map(
+                          (skill, index) => (
+                            <span
+                              className="skill-tag learn-tag"
+                              key={
+                                skill.id ||
+                                `${skill.name}-${index}`
+                              }
+                            >
+                              {skill.name}
+                            </span>
+                          )
+                        )}
+
+                        {user.skillsToLearn.length >
+                          2 && (
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              toggleLearnSkills(
+                                user.uid
+                              )
+                            }
+                            style={{
+                              marginTop: "10px",
+                            }}
+                          >
+                            {showAllLearnSkills
+                              ? "Show Less"
+                              : `Show More (${
+                                  user.skillsToLearn
+                                    .length - 2
+                                })`}
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <span className="empty-skill-text">
+                        No learning skills added
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <button
-                className="connect-button"
-                onClick={() =>
-                  navigate(
-                    `/profile/user/${user.uid}`
-                  )
-                }
-              >
-                View Profile
-              </button>
-            </div>
-          ))}
+                {/* ======================================
+                    VIEW PROFILE
+                ====================================== */}
+
+                <button
+                  className="connect-button"
+                  onClick={() =>
+                    navigate(
+                      `/profile/user/${user.uid}`
+                    )
+                  }
+                >
+                  View Profile
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

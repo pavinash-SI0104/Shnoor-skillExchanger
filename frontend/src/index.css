@@ -4903,3 +4903,54 @@ footer a:hover {
   color: var(--primary-color) !important;
   transform: translateX(6px);
 }
+
+.profile-picture-wrapper {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.profile-picture-wrapper .profile-large-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+}
+
+.profile-picture {
+  display: block;
+  object-fit: cover;
+}
+
+.profile-picture-upload {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--primary-color);
+  color: white;
+
+  border: 3px solid var(--card-bg);
+
+  cursor: pointer;
+
+  font-size: 15px;
+
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.profile-picture-upload:hover {
+  transform: scale(1.1);
+  background: var(--primary-hover);
+}
