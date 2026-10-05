@@ -3470,3 +3470,1266 @@ grid-template-columns: 1fr;
 .terms-checkbox a:hover {
   text-decoration: underline;
 }
+
+/* =========================================
+   LANDING PAGE ANIMATIONS
+========================================= */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hero entrance animations */
+@keyframes landingFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(35px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landingFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Floating animation */
+@keyframes landingFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Gentle pulse */
+@keyframes landingPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+/* Landing page main elements */
+.landing-animate-up {
+  animation: landingFadeUp 0.8s ease-out both;
+}
+
+.landing-animate-up-delay-1 {
+  animation: landingFadeUp 0.8s ease-out 0.15s both;
+}
+
+.landing-animate-up-delay-2 {
+  animation: landingFadeUp 0.8s ease-out 0.3s both;
+}
+
+.landing-animate-up-delay-3 {
+  animation: landingFadeUp 0.8s ease-out 0.45s both;
+}
+
+.landing-fade-in {
+  animation: landingFadeIn 1s ease-out both;
+}
+
+/* Floating elements */
+.landing-float {
+  animation: landingFloat 4s ease-in-out infinite;
+}
+
+/* Feature / information cards */
+.landing-card-animated {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.landing-card-animated:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Buttons */
+.landing-button-animated {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.landing-button-animated:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+}
+
+.landing-button-animated:active {
+  transform: translateY(0);
+}
+
+/* Navigation links */
+.landing-nav-link {
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.landing-nav-link:hover {
+  transform: translateY(-2px);
+}
+
+/* Footer links */
+.landing-footer-link {
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.landing-footer-link:hover {
+  transform: translateX(4px);
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .landing-card-animated:hover {
+    transform: translateY(-4px);
+  }
+
+  .landing-float {
+    animation-duration: 5s;
+  }
+}
+
+/* =========================================
+   THEME VARIABLES
+========================================= */
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #eff6ff;
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+
+  --border-color: #e5e7eb;
+
+  --card-bg: #ffffff;
+
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+
+  --input-bg: #ffffff;
+
+  --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+/* =========================================
+   DARK MODE
+========================================= */
+
+[data-theme="dark"] {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #172554;
+
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-muted: #9ca3af;
+
+  --border-color: #374151;
+
+  --card-bg: #1f2937;
+
+  --primary-color: #60a5fa;
+  --primary-hover: #93c5fd;
+
+  --input-bg: #111827;
+
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* =========================================
+   GLOBAL THEME
+========================================= */
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* =========================================
+   THEME TOGGLE
+========================================= */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 9px 14px;
+
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+
+  background: var(--card-bg);
+  color: var(--text-primary);
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 5px 15px var(--shadow-color);
+}
+
+.theme-toggle:active {
+  transform: translateY(0);
+}
+
+.theme-toggle-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.theme-toggle-text {
+  line-height: 1;
+}
+
+/* =========================================================
+   COMPLETE APPLICATION DARK / LIGHT THEME
+   Add this at the VERY END of index.css
+========================================================= */
+
+/* ---------------------------------------------------------
+   LIGHT THEME
+--------------------------------------------------------- */
+
+:root {
+  --app-bg: #f5f7fb;
+  --app-surface: #ffffff;
+  --app-surface-2: #f8fafc;
+
+  --app-text: #182433;
+  --app-text-secondary: #64748b;
+  --app-text-muted: #777777;
+
+  --app-border: #e5e7eb;
+  --app-border-light: #edf0f3;
+
+  --app-primary: #4f46e5;
+  --app-primary-blue: #4f9cf9;
+
+  --app-input-bg: #ffffff;
+
+  --app-sidebar: #182433;
+  --app-sidebar-hover: #293747;
+  --app-sidebar-text: #cbd5e1;
+
+  --app-soft-blue: #eef2ff;
+  --app-soft-green: #ecfdf5;
+  --app-soft-red: #fee2e2;
+  --app-soft-yellow: #fef3c7;
+
+  --app-shadow: rgba(0, 0, 0, 0.08);
+}
+
+
+/* ---------------------------------------------------------
+   DARK THEME
+--------------------------------------------------------- */
+
+[data-theme="dark"] {
+  --app-bg: #0f172a;
+  --app-surface: #1e293b;
+  --app-surface-2: #111827;
+
+  --app-text: #f8fafc;
+  --app-text-secondary: #cbd5e1;
+  --app-text-muted: #94a3b8;
+
+  --app-border: #334155;
+  --app-border-light: #374151;
+
+  --app-primary: #818cf8;
+  --app-primary-blue: #60a5fa;
+
+  --app-input-bg: #111827;
+
+  --app-sidebar: #020617;
+  --app-sidebar-hover: #1e293b;
+  --app-sidebar-text: #cbd5e1;
+
+  --app-soft-blue: #1e293b;
+  --app-soft-green: #064e3b;
+  --app-soft-red: #450a0a;
+  --app-soft-yellow: #451a03;
+
+  --app-shadow: rgba(0, 0, 0, 0.35);
+}
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+html,
+body,
+#root {
+  background: var(--app-bg);
+  color: var(--app-text);
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+.login-page {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.login-right {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+
+.login-box h2 {
+  color: var(--app-text);
+}
+
+.login-subtitle {
+  color: var(--app-text-secondary);
+}
+
+.form-group label {
+  color: var(--app-text);
+}
+
+.form-group input {
+  background: var(--app-input-bg);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.form-group input::placeholder {
+  color: var(--app-text-muted);
+}
+
+.login-options label {
+  color: var(--app-text-secondary);
+}
+
+.register-text {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   DASHBOARD MAIN LAYOUT
+========================================================= */
+
+.dashboard-layout {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.main-content {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.page-content {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+  background: var(--app-sidebar);
+  color: var(--app-sidebar-text);
+}
+
+.sidebar-logo {
+  background: var(--app-sidebar);
+  color: #ffffff;
+  border-color: var(--app-sidebar-hover);
+}
+
+.sidebar-bottom {
+  background: var(--app-sidebar);
+  border-color: var(--app-sidebar-hover);
+}
+
+.nav-item {
+  color: var(--app-sidebar-text);
+}
+
+.nav-item:hover {
+  background: var(--app-sidebar-hover);
+  color: #ffffff;
+}
+
+.nav-item.active {
+  background: var(--app-primary-blue);
+  color: #ffffff;
+}
+
+
+/* =========================================================
+   TOPBAR
+========================================================= */
+
+.topbar {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.topbar h2 {
+  color: var(--app-text);
+}
+
+.user-mini strong {
+  color: var(--app-text);
+}
+
+.user-mini small {
+  color: var(--app-text-secondary);
+}
+
+.notification-button {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+}
+
+
+/* =========================================================
+   PAGE HEADINGS
+========================================================= */
+
+.page-heading h1 {
+  color: var(--app-text);
+}
+
+.page-heading p {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   COMMON CARDS
+========================================================= */
+
+.dashboard-card,
+.dashboard-section,
+.stat-card,
+.summary-card,
+.sessions-card,
+.notifications-card,
+.wishlist-card,
+.profile-main-card,
+.profile-section,
+.skill-form-card {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.card-header h3 {
+  color: var(--app-text);
+}
+
+.card-header a {
+  color: var(--app-primary);
+}
+
+
+/* =========================================================
+   DASHBOARD STATISTICS
+========================================================= */
+
+.stat-icon {
+  background: var(--app-soft-blue);
+}
+
+.stat-card p {
+  color: var(--app-text-secondary);
+}
+
+.stat-card h2 {
+  color: var(--app-text);
+}
+
+
+/* =========================================================
+   SESSIONS
+========================================================= */
+
+.session-item {
+  border-color: var(--app-border-light);
+}
+
+.session-icon {
+  background: var(--app-surface-2);
+}
+
+.session-info strong,
+.session-info h3 {
+  color: var(--app-text);
+}
+
+.session-info span,
+.session-info small,
+.session-info p {
+  color: var(--app-text-secondary);
+}
+
+.session-location {
+  color: var(--app-text-secondary) !important;
+}
+
+.session-date {
+  background: var(--app-soft-blue);
+}
+
+.session-date span {
+  color: var(--app-primary-blue);
+}
+
+.session-date strong {
+  color: var(--app-text);
+}
+
+.completed-date {
+  background: var(--app-surface-2);
+}
+
+.completed-date span {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   SESSION FORM
+========================================================= */
+
+.session-form-card h2 {
+  color: var(--app-text);
+}
+
+.session-form-card p {
+  color: var(--app-text-secondary);
+}
+
+.form-group label {
+  color: var(--app-text);
+}
+
+.form-group input,
+.form-group select,
+.session-form-grid .form-group input,
+.session-form-grid .form-group select {
+  background: var(--app-input-bg);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.form-group input::placeholder {
+  color: var(--app-text-muted);
+}
+
+.secondary-button {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.secondary-button:hover {
+  background: var(--app-surface-2);
+}
+
+
+/* =========================================================
+   REQUESTS
+========================================================= */
+
+.request-item,
+.exchange-request {
+  border-color: var(--app-border-light);
+}
+
+.request-info strong,
+.exchange-request-info h3 {
+  color: var(--app-text);
+}
+
+.request-info span,
+.exchange-request-info p {
+  color: var(--app-text-secondary);
+}
+
+.exchange-request-info small {
+  color: var(--app-text-muted);
+}
+
+.summary-card span {
+  color: var(--app-text-secondary);
+}
+
+.pending-status {
+  background: var(--app-soft-yellow);
+}
+
+.accepted-status {
+  background: var(--app-soft-green);
+}
+
+.rejected-status {
+  background: var(--app-soft-red);
+}
+
+
+/* =========================================================
+   MY SKILLS
+========================================================= */
+
+.skill-item {
+  border-color: var(--app-border-light);
+}
+
+.skill-icon {
+  background: var(--app-soft-blue);
+}
+
+.skill-info strong {
+  color: var(--app-text);
+}
+
+.skill-info span {
+  color: var(--app-text-secondary);
+}
+
+.edit-button {
+  background: var(--app-soft-blue);
+}
+
+.delete-button {
+  background: var(--app-soft-red);
+}
+
+
+/* =========================================================
+   DISCOVER
+========================================================= */
+
+.discover-search input {
+  background: var(--app-input-bg);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.user-card-header h2 {
+  color: var(--app-text);
+}
+
+.user-card-header p {
+  color: var(--app-text-secondary);
+}
+
+.discover-avatar {
+  background: var(--app-soft-blue);
+  color: var(--app-primary);
+}
+
+.user-rating span {
+  color: var(--app-text-secondary);
+}
+
+.teach-tag {
+  background: var(--app-soft-blue);
+}
+
+.learn-tag {
+  background: var(--app-soft-green);
+}
+
+
+/* =========================================================
+   USER PROFILE
+========================================================= */
+
+.back-button {
+  color: var(--app-primary);
+}
+
+.profile-main h1 {
+  color: var(--app-text);
+}
+
+.profile-main p {
+  color: var(--app-text-secondary);
+}
+
+.profile-avatar {
+  background: var(--app-soft-blue);
+  color: var(--app-primary);
+}
+
+.profile-skill-item {
+  background: var(--app-surface-2);
+}
+
+.profile-skill-item strong {
+  color: var(--app-text);
+}
+
+
+/* =========================================================
+   MATCHES
+========================================================= */
+
+.match-avatar {
+  background: var(--app-soft-blue);
+  color: var(--app-primary);
+}
+
+.match-header h2 {
+  color: var(--app-text);
+}
+
+.match-header p {
+  color: var(--app-text-secondary);
+}
+
+.match-score strong {
+  color: var(--app-primary);
+}
+
+.match-score span {
+  color: var(--app-text-secondary);
+}
+
+.match-skill {
+  background: var(--app-surface-2);
+}
+
+.match-skill small {
+  color: var(--app-text-secondary);
+}
+
+.match-skill strong {
+  color: var(--app-text);
+}
+
+.match-arrow {
+  color: var(--app-primary);
+}
+
+.match-level {
+  border-color: var(--app-border);
+}
+
+.match-level span {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   DASHBOARD SESSION INTEGRATION
+========================================================= */
+
+.section-heading-row h2 {
+  color: var(--app-text);
+}
+
+.section-heading-row p {
+  color: var(--app-text-secondary);
+}
+
+.dashboard-empty {
+  color: var(--app-text-secondary);
+}
+
+.dashboard-empty h3 {
+  color: var(--app-text);
+}
+
+.next-session-card {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+}
+
+.next-session-main h3 {
+  color: var(--app-text);
+}
+
+.session-date-text {
+  color: var(--app-primary);
+}
+
+.next-session-details span,
+.session-detail-note {
+  color: var(--app-text-secondary);
+}
+
+.next-session-details strong {
+  color: var(--app-text);
+}
+
+.session-history-card {
+  border-color: var(--app-border-light);
+}
+
+.session-history-main h3 {
+  color: var(--app-text);
+}
+
+.session-history-main p {
+  color: var(--app-text-secondary);
+}
+
+.session-history-participant span {
+  color: var(--app-text-muted);
+}
+
+.session-history-participant strong {
+  color: var(--app-text);
+}
+
+
+/* =========================================================
+   CHAT
+========================================================= */
+
+.chat-container {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.conversation-panel {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.conversation-header {
+  border-color: var(--app-border-light);
+}
+
+.conversation-header h2 {
+  color: var(--app-text);
+}
+
+.conversation-item {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-light);
+}
+
+.conversation-item:hover {
+  background: var(--app-surface-2);
+}
+
+.conversation-item.active {
+  background: var(--app-soft-blue);
+}
+
+.conversation-info strong {
+  color: var(--app-text);
+}
+
+.conversation-info small {
+  color: var(--app-text-secondary);
+}
+
+.chat-avatar {
+  background: var(--app-soft-blue);
+  color: var(--app-primary);
+}
+
+.chat-header {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.chat-header h2 {
+  color: var(--app-text);
+}
+
+.messages-area {
+  background: var(--app-surface-2);
+}
+
+.their-message .message-bubble {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.message-input-area {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.message-input-area input {
+  background: var(--app-input-bg);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.chat-empty-state {
+  color: var(--app-text-secondary);
+}
+
+.chat-empty-state.large h2 {
+  color: var(--app-text);
+}
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+.notification-item {
+  border-color: var(--app-border-light);
+}
+
+.notification-item.unread {
+  background: var(--app-surface-2);
+}
+
+.notification-icon {
+  background: var(--app-soft-blue);
+}
+
+.notification-content h3 {
+  color: var(--app-text);
+}
+
+.notification-content p {
+  color: var(--app-text-secondary);
+}
+
+.notification-content small {
+  color: var(--app-text-muted);
+}
+
+.read-button {
+  background: var(--app-soft-blue);
+  color: var(--app-primary);
+}
+
+.notification-delete {
+  color: var(--app-text-muted);
+}
+
+.notification-delete:hover {
+  background: var(--app-surface-2);
+}
+
+.empty-notifications p {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   WISHLIST
+========================================================= */
+
+.wishlist-item {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.wishlist-avatar {
+  background: var(--app-soft-blue);
+  color: var(--app-primary);
+}
+
+.wishlist-user-header h3 {
+  color: var(--app-text);
+}
+
+.wishlist-user-header p {
+  color: var(--app-text-secondary);
+}
+
+.wishlist-label {
+  color: var(--app-text-secondary);
+}
+
+.wishlist-skill {
+  background: var(--app-surface-2);
+  color: var(--app-text-secondary);
+}
+
+.remove-wishlist-button {
+  background: var(--app-surface);
+  color: var(--app-text-secondary);
+  border-color: var(--app-border);
+}
+
+.remove-wishlist-button:hover {
+  background: var(--app-surface-2);
+}
+
+.empty-wishlist p {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.profile-large-avatar {
+  background: var(--app-soft-blue);
+  color: var(--app-primary);
+}
+
+.profile-main-info h2 {
+  color: var(--app-text);
+}
+
+.profile-main-info > p {
+  color: var(--app-text-secondary);
+}
+
+.profile-meta span {
+  color: var(--app-text-secondary);
+}
+
+.profile-form-grid input,
+.profile-bio-group textarea {
+  background: var(--app-input-bg);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.profile-value {
+  color: var(--app-text);
+}
+
+.profile-bio {
+  color: var(--app-text-secondary);
+}
+
+.teach-skill {
+  background: var(--app-soft-blue);
+}
+
+.learn-skill {
+  background: var(--app-soft-green);
+}
+
+.activity-item {
+  background: var(--app-surface-2);
+}
+
+.activity-item strong {
+  color: var(--app-primary);
+}
+
+.activity-item span {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   LEGAL PAGES
+========================================================= */
+
+.legal-page {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.legal-container {
+  background: var(--app-surface);
+  color: var(--app-text);
+  box-shadow: 0 10px 30px var(--app-shadow);
+}
+
+.legal-container h1 {
+  color: var(--app-text);
+}
+
+.legal-updated {
+  color: var(--app-text-secondary);
+}
+
+.legal-container h2 {
+  color: var(--app-primary-blue);
+}
+
+.legal-container p {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   TERMS CHECKBOX
+========================================================= */
+
+.terms-checkbox {
+  color: var(--app-text-secondary);
+}
+
+.terms-checkbox a {
+  color: var(--app-primary-blue);
+}
+
+
+/* =========================================================
+   FOOTER LINKS
+========================================================= */
+
+.footer-links a {
+  color: var(--app-text-secondary);
+}
+
+
+/* =========================================================
+   LANDING PAGE
+========================================================= */
+
+/*
+   These rules work with the landing-page classes.
+   They make the landing page follow the same theme.
+*/
+
+.landing-page {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.landing-page section {
+  color: var(--app-text);
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page h3,
+.landing-page h4 {
+  color: var(--app-text);
+}
+
+.landing-page p {
+  color: var(--app-text-secondary);
+}
+
+.landing-page a {
+  color: inherit;
+}
+
+.landing-card-animated {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+  box-shadow: 0 10px 30px var(--app-shadow);
+}
+
+
+/* =========================================================
+   GLOBAL TRANSITIONS
+========================================================= */
+
+body,
+.dashboard-layout,
+.main-content,
+.page-content,
+.topbar,
+.sidebar,
+.dashboard-card,
+.dashboard-section,
+.stat-card,
+.summary-card,
+.sessions-card,
+.notifications-card,
+.wishlist-card,
+.wishlist-item,
+.chat-container,
+.conversation-panel,
+.conversation-item,
+.message-input-area,
+.legal-page,
+.legal-container,
+.login-page,
+.login-right,
+.form-group input,
+.form-group select,
+.profile-form-grid input,
+.profile-bio-group textarea {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}

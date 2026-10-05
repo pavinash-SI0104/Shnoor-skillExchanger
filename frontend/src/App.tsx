@@ -5,6 +5,8 @@ import {
   Routes,
 } from "react-router-dom";
 
+import { ThemeProvider } from "./context/ThemeContext";
+
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -27,62 +29,140 @@ import Wishlist from "./pages/Wishlist";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
 
-        {/* Landing Page */}
-        <Route path="/" element={<LandingPage />} />
+          {/* =========================
+              LANDING PAGE
+          ========================== */}
 
-        {/* Authentication Pages */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+          <Route
+            path="/"
+            element={<LandingPage />}
+          />
 
-        <Route path="/terms" element={<TermsAndConditions />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
+          {/* =========================
+              AUTHENTICATION PAGES
+          ========================== */}
 
-        {/* Protected Application Pages */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<DashboardLayout />}>
+          <Route
+            path="/login"
+            element={<Login />}
+          />
 
-            <Route path="/dashboard" element={<Dashboard />} />
+          <Route
+            path="/register"
+            element={<Register />}
+          />
 
-            <Route path="/skills" element={<MySkills />} />
+          {/* =========================
+              LEGAL PAGES
+          ========================== */}
 
-            <Route path="/discover" element={<Discover />} />
+          <Route
+            path="/terms"
+            element={<TermsAndConditions />}
+          />
 
-            <Route
-              path="/profile/user/:uid"
-              element={<UserProfile />}
-            />
+          <Route
+            path="/privacy"
+            element={<PrivacyPolicy />}
+          />
 
-            <Route path="/profile" element={<Profile />} />
+          {/* =========================
+              PROTECTED APPLICATION
+          ========================== */}
 
-            <Route path="/requests" element={<Requests />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardLayout />}>
 
-            <Route path="/matches" element={<Matches />} />
+              {/* Dashboard */}
+              <Route
+                path="/dashboard"
+                element={<Dashboard />}
+              />
 
-            <Route path="/sessions" element={<Sessions />} />
+              {/* My Skills */}
+              <Route
+                path="/skills"
+                element={<MySkills />}
+              />
 
-            <Route path="/chat" element={<Chat />} />
+              {/* Discover */}
+              <Route
+                path="/discover"
+                element={<Discover />}
+              />
 
-            <Route
-              path="/notifications"
-              element={<Notifications />}
-            />
+              {/* Other User Profile */}
+              <Route
+                path="/profile/user/:uid"
+                element={<UserProfile />}
+              />
 
-            <Route path="/wishlist" element={<Wishlist />} />
+              {/* My Profile */}
+              <Route
+                path="/profile"
+                element={<Profile />}
+              />
 
+              {/* Requests */}
+              <Route
+                path="/requests"
+                element={<Requests />}
+              />
+
+              {/* Matches */}
+              <Route
+                path="/matches"
+                element={<Matches />}
+              />
+
+              {/* Sessions */}
+              <Route
+                path="/sessions"
+                element={<Sessions />}
+              />
+
+              {/* Chat */}
+              <Route
+                path="/chat"
+                element={<Chat />}
+              />
+
+              {/* Notifications */}
+              <Route
+                path="/notifications"
+                element={<Notifications />}
+              />
+
+              {/* Wishlist */}
+              <Route
+                path="/wishlist"
+                element={<Wishlist />}
+              />
+
+            </Route>
           </Route>
-        </Route>
 
-        {/* Unknown URL → Dashboard */}
-        <Route
-          path="*"
-          element={<Navigate to="/dashboard" replace />}
-        />
+          {/* =========================
+              UNKNOWN URL
+          ========================== */}
 
-      </Routes>
-    </BrowserRouter>
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to="/dashboard"
+                replace
+              />
+            }
+          />
+
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
