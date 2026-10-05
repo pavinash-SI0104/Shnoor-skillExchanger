@@ -4733,3 +4733,173 @@ body,
     border-color 0.3s ease,
     box-shadow 0.3s ease;
 }
+
+
+/* =========================================
+   LANDING PAGE ANIMATIONS
+========================================= */
+
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Navbar */
+
+.animate-fade-down {
+  animation: fadeDown 0.8s ease-out both;
+}
+
+/* Hero */
+
+.animate-fade-left {
+  animation: fadeLeft 0.9s ease-out 0.2s both;
+}
+
+.animate-fade-right {
+  animation: fadeRight 0.9s ease-out 0.4s both;
+}
+
+/* Sections */
+
+.animate-fade-up {
+  animation: fadeUp 0.9s ease-out both;
+}
+
+/* Cards */
+
+.animate-card {
+  animation: cardAppear 0.7s ease-out both;
+}
+
+/* Card hover */
+
+.animate-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 15px 35px var(--shadow-color);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Buttons */
+
+.animate-button {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.animate-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px var(--shadow-color);
+}
+
+/* Hero visual */
+
+.hero-visual-animation {
+  animation:
+    fadeRight 0.9s ease-out 0.4s both,
+    floating 4s ease-in-out 1.5s infinite;
+}
+
+@keyframes floating {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-down,
+  .animate-fade-left,
+  .animate-fade-right,
+  .animate-fade-up,
+  .animate-card,
+  .hero-visual-animation {
+    animation: none;
+  }
+
+  .animate-card:hover,
+  .animate-button:hover {
+    transform: none;
+  }
+}
+
+
+/* =========================================
+   FOOTER LINK ANIMATIONS
+========================================= */
+
+footer a {
+  display: inline-block;
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+footer a:hover {
+  color: var(--primary-color) !important;
+  transform: translateX(6px);
+}

@@ -18,6 +18,7 @@ function LandingPage() {
       ========================== */}
 
       <nav
+        className="animate-fade-down"
         style={{
           height: "70px",
           background: "var(--card-bg)",
@@ -71,7 +72,11 @@ function LandingPage() {
 
           <ThemeToggle />
 
-          <Link to="/register" style={registerButtonStyle}>
+          <Link
+            to="/register"
+            className="animate-button"
+            style={registerButtonStyle}
+          >
             Get Started
           </Link>
         </div>
@@ -95,7 +100,12 @@ function LandingPage() {
       >
         {/* Hero Text */}
 
-        <div style={{ maxWidth: "600px" }}>
+        <div
+          className="animate-fade-left"
+          style={{
+            maxWidth: "600px",
+          }}
+        >
           <p
             style={{
               color: "var(--primary-color)",
@@ -139,11 +149,19 @@ function LandingPage() {
               gap: "15px",
             }}
           >
-            <Link to="/register" style={heroButtonStyle}>
+            <Link
+              to="/register"
+              className="animate-button"
+              style={heroButtonStyle}
+            >
               Get Started
             </Link>
 
-            <a href="#how-it-works" style={secondaryButtonStyle}>
+            <a
+              href="#how-it-works"
+              className="animate-button"
+              style={secondaryButtonStyle}
+            >
               Learn More
             </a>
           </div>
@@ -152,6 +170,7 @@ function LandingPage() {
         {/* Hero Visual */}
 
         <div
+          className="hero-visual-animation"
           style={{
             width: "400px",
             height: "350px",
@@ -166,7 +185,11 @@ function LandingPage() {
               "background-color 0.3s ease, border-color 0.3s ease",
           }}
         >
-          <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              textAlign: "center",
+            }}
+          >
             <div
               style={{
                 fontSize: "80px",
@@ -202,6 +225,7 @@ function LandingPage() {
 
       <section
         id="how-it-works"
+        className="animate-fade-up"
         style={{
           padding: "80px 100px",
           background: "var(--bg-primary)",
@@ -263,6 +287,7 @@ function LandingPage() {
 
       <section
         id="features"
+        className="animate-fade-up"
         style={{
           padding: "80px 100px",
           background: "var(--bg-secondary)",
@@ -329,6 +354,7 @@ function LandingPage() {
       ========================== */}
 
       <section
+        className="animate-fade-up"
         style={{
           padding: "80px 30px",
           background: "var(--primary-color)",
@@ -358,6 +384,7 @@ function LandingPage() {
 
         <Link
           to="/register"
+          className="animate-button"
           style={{
             display: "inline-block",
             padding: "14px 30px",
@@ -377,6 +404,7 @@ function LandingPage() {
       ========================== */}
 
       <footer
+        className="animate-fade-up"
         style={{
           background: "var(--bg-secondary)",
           color: "var(--text-primary)",
@@ -398,7 +426,11 @@ function LandingPage() {
         >
           {/* BRAND */}
 
-          <div style={{ maxWidth: "350px" }}>
+          <div
+            style={{
+              maxWidth: "350px",
+            }}
+          >
             <h2
               style={{
                 margin: "0 0 15px",
@@ -407,7 +439,11 @@ function LandingPage() {
               }}
             >
               Skill
-              <span style={{ color: "var(--primary-color)" }}>
+              <span
+                style={{
+                  color: "var(--primary-color)",
+                }}
+              >
                 Exchanger
               </span>
             </h2>
@@ -444,19 +480,31 @@ function LandingPage() {
                 gap: "12px",
               }}
             >
-              <a href="#home" style={footerLinkStyle}>
+              <a
+                href="#home"
+                style={footerLinkStyle}
+              >
                 Home
               </a>
 
-              <a href="#how-it-works" style={footerLinkStyle}>
+              <a
+                href="#how-it-works"
+                style={footerLinkStyle}
+              >
                 How It Works
               </a>
 
-              <a href="#features" style={footerLinkStyle}>
+              <a
+                href="#features"
+                style={footerLinkStyle}
+              >
                 Features
               </a>
 
-              <Link to="/register" style={footerLinkStyle}>
+              <Link
+                to="/register"
+                style={footerLinkStyle}
+              >
                 Get Started
               </Link>
             </div>
@@ -482,11 +530,17 @@ function LandingPage() {
                 gap: "12px",
               }}
             >
-              <Link to="/terms" style={footerLinkStyle}>
+              <Link
+                to="/terms"
+                style={footerLinkStyle}
+              >
                 Terms & Conditions
               </Link>
 
-              <Link to="/privacy" style={footerLinkStyle}>
+              <Link
+                to="/privacy"
+                style={footerLinkStyle}
+              >
                 Privacy Policy
               </Link>
             </div>
@@ -595,6 +649,7 @@ function InfoCard({
 }) {
   return (
     <div
+      className="animate-card"
       style={{
         width: "280px",
         padding: "30px",
@@ -648,6 +703,7 @@ function FeatureCard({
 }) {
   return (
     <div
+      className="animate-card"
       style={{
         width: "220px",
         padding: "30px 20px",
