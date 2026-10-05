@@ -1,6 +1,14 @@
-
 import { Link } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
+
+import {
+  faGithub,
+  faLinkedin,
+} from "@fortawesome/free-brands-svg-icons";
+
+import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 function LandingPage() {
   return (
@@ -480,31 +488,19 @@ function LandingPage() {
                 gap: "12px",
               }}
             >
-              <a
-                href="#home"
-                style={footerLinkStyle}
-              >
+              <a href="#home" style={footerLinkStyle}>
                 Home
               </a>
 
-              <a
-                href="#how-it-works"
-                style={footerLinkStyle}
-              >
+              <a href="#how-it-works" style={footerLinkStyle}>
                 How It Works
               </a>
 
-              <a
-                href="#features"
-                style={footerLinkStyle}
-              >
+              <a href="#features" style={footerLinkStyle}>
                 Features
               </a>
 
-              <Link
-                to="/register"
-                style={footerLinkStyle}
-              >
+              <Link to="/register" style={footerLinkStyle}>
                 Get Started
               </Link>
             </div>
@@ -530,17 +526,11 @@ function LandingPage() {
                 gap: "12px",
               }}
             >
-              <Link
-                to="/terms"
-                style={footerLinkStyle}
-              >
+              <Link to="/terms" style={footerLinkStyle}>
                 Terms & Conditions
               </Link>
 
-              <Link
-                to="/privacy"
-                style={footerLinkStyle}
-              >
+              <Link to="/privacy" style={footerLinkStyle}>
                 Privacy Policy
               </Link>
             </div>
@@ -559,20 +549,24 @@ function LandingPage() {
               Connect With Us
             </h3>
 
+            {/* ONLY ICONS */}
+
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                gap: "14px",
+                alignItems: "center",
+                gap: "18px",
               }}
             >
               {/* Email */}
 
               <a
                 href="mailto:priyaenjam11@gmail.com"
-                style={footerLinkStyle}
+                aria-label="Email"
+                title="Email"
+                style={socialIconStyle}
               >
-                📧 priyaenjam11@gmail.com
+                <FontAwesomeIcon icon={faEnvelope} />
               </a>
 
               {/* GitHub */}
@@ -581,9 +575,11 @@ function LandingPage() {
                 href="https://github.com/pavinash-SI0104/Shnoor-skillExchanger"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={footerLinkStyle}
+                aria-label="GitHub"
+                title="GitHub"
+                style={socialIconStyle}
               >
-                🐙 GitHub
+                <FontAwesomeIcon icon={faGithub} />
               </a>
 
               {/* LinkedIn */}
@@ -592,9 +588,11 @@ function LandingPage() {
                 href="https://www.linkedin.com/in/supriya-enjam-751758388"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={footerLinkStyle}
+                aria-label="LinkedIn"
+                title="LinkedIn"
+                style={socialIconStyle}
               >
-                💼 LinkedIn
+                <FontAwesomeIcon icon={faLinkedin} />
               </a>
             </div>
           </div>
@@ -786,6 +784,24 @@ const footerLinkStyle = {
   color: "var(--text-muted)",
   textDecoration: "none",
   fontSize: "14px",
+};
+
+/* Social media icon style */
+
+const socialIconStyle = {
+  width: "42px",
+  height: "42px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "50%",
+  background: "var(--card-bg)",
+  color: "var(--text-primary)",
+  border: "1px solid var(--border-color)",
+  textDecoration: "none",
+  fontSize: "20px",
+  transition:
+    "transform 0.2s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease",
 };
 
 export default LandingPage;

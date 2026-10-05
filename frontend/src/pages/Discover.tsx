@@ -54,8 +54,16 @@ function Discover() {
             api.get("/users/discover"),
             api.get("/users/wishlist"),
           ]);
+        const [usersResponse, wishlistResponse] =
+          await Promise.all([
+            api.get("/users/discover"),
+            api.get("/users/wishlist"),
+          ]);
 
         setUsers(usersResponse.data.users || []);
+        setWishlist(
+          wishlistResponse.data.wishlist || []
+        );
         setWishlist(
           wishlistResponse.data.wishlist || []
         );
@@ -90,6 +98,12 @@ function Discover() {
         ...user.skillsToLearn.map(
           (skill) => skill.name
         ),
+        ...user.skillsToTeach.map(
+          (skill) => skill.name
+        ),
+        ...user.skillsToLearn.map(
+          (skill) => skill.name
+        ),
       ]
         .join(" ")
         .toLowerCase();
@@ -98,6 +112,10 @@ function Discover() {
     });
   }, [users, search]);
 
+  const isWishlisted = (
+    userId: string,
+    skillId: string
+  ) => {
   const isWishlisted = (
     userId: string,
     skillId: string
@@ -154,6 +172,10 @@ function Discover() {
         "Failed to update wishlist:",
         err
       );
+      console.error(
+        "Failed to update wishlist:",
+        err
+      );
 
       setError(
         err instanceof Error
@@ -201,7 +223,10 @@ function Discover() {
         <div>
           <h1>Discover</h1>
 
+
           <p>
+            Find people who can teach you the
+            skills you want to learn.
             Find people who can teach you the
             skills you want to learn.
           </p>
@@ -310,6 +335,7 @@ function Discover() {
           </div>
 
           <h3>Unable to load users</h3>
+
 
           <p>{error}</p>
 

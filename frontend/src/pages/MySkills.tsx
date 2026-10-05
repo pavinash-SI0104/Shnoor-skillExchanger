@@ -30,6 +30,16 @@ function MySkills() {
   const [error, setError] = useState("");
 
   // =========================
+  // SHOW MORE / SHOW LESS
+  // =========================
+
+  const [showAllTeaching, setShowAllTeaching] =
+    useState(false);
+
+  const [showAllLearning, setShowAllLearning] =
+    useState(false);
+
+  // =========================
   // LOAD SKILLS
   // =========================
 
@@ -246,6 +256,18 @@ function MySkills() {
   );
 
   // =========================
+  // VISIBLE SKILLS
+  // =========================
+
+  const visibleTeachingSkills = showAllTeaching
+    ? teachingSkills
+    : teachingSkills.slice(0, 2);
+
+  const visibleLearningSkills = showAllLearning
+    ? learningSkills
+    : learningSkills.slice(0, 2);
+
+  // =========================
   // LOADING
   // =========================
 
@@ -255,6 +277,7 @@ function MySkills() {
         <div className="page-heading">
           <div>
             <h1>My Skills</h1>
+
             <p>
               Loading your skills...
             </p>
@@ -468,41 +491,66 @@ function MySkills() {
                 </span>
               </div>
             ) : (
-              teachingSkills.map((skill) => (
-                <div
-                  className="skill-item"
-                  key={skill.id}
-                >
-                  <div className="skill-icon">
-                    💻
-                  </div>
-
-                  <div className="skill-info">
-                    <strong>
-                      {skill.name}
-                    </strong>
-
-                    <span>
-                      {skill.level}
-                    </span>
-                  </div>
-
-                  <div className="skill-actions">
-                    <button
-                      className="delete-button"
-                      type="button"
-                      onClick={() =>
-                        setDeleteId(skill.id)
-                      }
-                      disabled={
-                        deletingId === skill.id
-                      }
+              <>
+                {visibleTeachingSkills.map(
+                  (skill) => (
+                    <div
+                      className="skill-item"
+                      key={skill.id}
                     >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))
+                      <div className="skill-icon">
+                        💻
+                      </div>
+
+                      <div className="skill-info">
+                        <strong>
+                          {skill.name}
+                        </strong>
+
+                        <span>
+                          {skill.level}
+                        </span>
+                      </div>
+
+                      <div className="skill-actions">
+                        <button
+                          className="delete-button"
+                          type="button"
+                          onClick={() =>
+                            setDeleteId(skill.id)
+                          }
+                          disabled={
+                            deletingId === skill.id
+                          }
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {teachingSkills.length > 2 && (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() =>
+                      setShowAllTeaching(
+                        (current) => !current
+                      )
+                    }
+                    style={{
+                      marginTop: "15px",
+                    }}
+                  >
+                    {showAllTeaching
+                      ? "Show Less"
+                      : `Show More (${
+                          teachingSkills.length - 2
+                        })`}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -540,41 +588,66 @@ function MySkills() {
                 </span>
               </div>
             ) : (
-              learningSkills.map((skill) => (
-                <div
-                  className="skill-item"
-                  key={skill.id}
-                >
-                  <div className="skill-icon">
-                    🎯
-                  </div>
-
-                  <div className="skill-info">
-                    <strong>
-                      {skill.name}
-                    </strong>
-
-                    <span>
-                      {skill.level}
-                    </span>
-                  </div>
-
-                  <div className="skill-actions">
-                    <button
-                      className="delete-button"
-                      type="button"
-                      onClick={() =>
-                        setDeleteId(skill.id)
-                      }
-                      disabled={
-                        deletingId === skill.id
-                      }
+              <>
+                {visibleLearningSkills.map(
+                  (skill) => (
+                    <div
+                      className="skill-item"
+                      key={skill.id}
                     >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))
+                      <div className="skill-icon">
+                        🎯
+                      </div>
+
+                      <div className="skill-info">
+                        <strong>
+                          {skill.name}
+                        </strong>
+
+                        <span>
+                          {skill.level}
+                        </span>
+                      </div>
+
+                      <div className="skill-actions">
+                        <button
+                          className="delete-button"
+                          type="button"
+                          onClick={() =>
+                            setDeleteId(skill.id)
+                          }
+                          disabled={
+                            deletingId === skill.id
+                          }
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {learningSkills.length > 2 && (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() =>
+                      setShowAllLearning(
+                        (current) => !current
+                      )
+                    }
+                    style={{
+                      marginTop: "15px",
+                    }}
+                  >
+                    {showAllLearning
+                      ? "Show Less"
+                      : `Show More (${
+                          learningSkills.length - 2
+                        })`}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
