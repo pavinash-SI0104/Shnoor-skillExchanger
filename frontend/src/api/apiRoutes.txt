@@ -1,0 +1,38 @@
+GET     /                         ☐
+GET     /api/health               ☐
+
+GET     /api/auth/me              ☐
+
+POST    /api/users/profile        ☐
+GET     /api/users/profile        ☐
+GET     /api/users/:userId        ☐
+
+GET     /api/users/skills         ☐
+POST    /api/users/skills         ☐
+DELETE  /api/users/skills/:skillId ☐
+
+GET     /api/users/discover       ☐
+
+POST    /api/users/requests      ☐
+GET     /api/users/requests      ☐
+PATCH   /api/users/requests/:id  ☐
+
+POST    /api/users/conversations ☐
+GET     /api/users/conversations ☐
+GET     /api/users/conversations/:id/messages ☐
+PATCH   /api/users/conversations/:id/read ☐
+
+POST    /api/users/sessions      ☐
+GET     /api/users/sessions      ☐
+PATCH   /api/users/sessions/:id  ☐
+
+GET     /api/users/ai-matches    ☐
+
+GET     /api/users/wishlist      ☐
+POST    /api/users/wishlist      ☐
+DELETE  /api/users/wishlist/:userId ☐
+
+GET     /api/users/notifications ☐
+GET     /api/users/notifications/unread-count ☐
+PATCH   /api/users/notifications/:id/read ☐
+PATCH   /api/users/notifications/read-all ☐

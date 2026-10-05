@@ -8,7 +8,10 @@ interface UserProfile {
   name: string;
   email: string;
   role?: string;
-  location?: string;
+  location?: string | {
+    type?: string;
+    city?: string;
+  };
   photoURL?: string;
   bio?: string;
 }
@@ -78,7 +81,13 @@ function Profile() {
       );
 
       setRole(profile.role || "");
-      setLocation(profile.location || "");
+
+      setLocation(
+        typeof profile.location === "string"
+          ? profile.location
+          : profile.location?.city || ""
+      );
+
       setBio(profile.bio || "");
 
       // Load skills
@@ -177,7 +186,11 @@ function Profile() {
       setName(profileData.name);
       setEmail(profileData.email);
       setRole(profileData.role ?? "");
-      setLocation(profileData.location ?? "");
+      setLocation(
+        typeof profileData.location === "string"
+          ? profileData.location
+          : profileData.location?.city || ""
+      );
       setBio(profileData.bio ?? "");
 
       setIsEditing(false);
