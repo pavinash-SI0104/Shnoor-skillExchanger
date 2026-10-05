@@ -1,12 +1,16 @@
+
 import { Link } from "react-router-dom";
+import ThemeToggle from "../components/ThemeToggle";
 
 function LandingPage() {
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "#f8fafc",
+        background: "var(--bg-primary)",
+        color: "var(--text-primary)",
         fontFamily: "Arial, sans-serif",
+        transition: "background-color 0.3s ease, color 0.3s ease",
       }}
     >
       {/* =========================
@@ -16,26 +20,30 @@ function LandingPage() {
       <nav
         style={{
           height: "70px",
-          background: "#ffffff",
+          background: "var(--card-bg)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 60px",
-          borderBottom: "1px solid #e5e7eb",
+          borderBottom: "1px solid var(--border-color)",
+          transition:
+            "background-color 0.3s ease, border-color 0.3s ease",
         }}
       >
         {/* Logo */}
+
         <div
           style={{
             fontSize: "24px",
             fontWeight: "bold",
-            color: "#2563eb",
+            color: "var(--primary-color)",
           }}
         >
           Skill Exchanger
         </div>
 
         {/* Navigation Links */}
+
         <div
           style={{
             display: "flex",
@@ -59,6 +67,10 @@ function LandingPage() {
             Login
           </Link>
 
+          {/* Theme Toggle */}
+
+          <ThemeToggle />
+
           <Link to="/register" style={registerButtonStyle}>
             Get Started
           </Link>
@@ -77,14 +89,16 @@ function LandingPage() {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "60px 100px",
-          background: "#eff6ff",
+          background: "var(--bg-tertiary)",
+          transition: "background-color 0.3s ease",
         }}
       >
         {/* Hero Text */}
+
         <div style={{ maxWidth: "600px" }}>
           <p
             style={{
-              color: "#2563eb",
+              color: "var(--primary-color)",
               fontSize: "16px",
               fontWeight: "bold",
               marginBottom: "15px",
@@ -97,7 +111,7 @@ function LandingPage() {
             style={{
               fontSize: "52px",
               lineHeight: "1.1",
-              color: "#111827",
+              color: "var(--text-primary)",
               margin: "0 0 20px",
             }}
           >
@@ -110,7 +124,7 @@ function LandingPage() {
             style={{
               fontSize: "18px",
               lineHeight: "1.7",
-              color: "#4b5563",
+              color: "var(--text-secondary)",
               marginBottom: "30px",
             }}
           >
@@ -136,16 +150,20 @@ function LandingPage() {
         </div>
 
         {/* Hero Visual */}
+
         <div
           style={{
             width: "400px",
             height: "350px",
-            background: "#ffffff",
+            background: "var(--card-bg)",
             borderRadius: "24px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.08)",
+            boxShadow: "0 20px 50px var(--shadow-color)",
+            border: "1px solid var(--border-color)",
+            transition:
+              "background-color 0.3s ease, border-color 0.3s ease",
           }}
         >
           <div style={{ textAlign: "center" }}>
@@ -160,14 +178,18 @@ function LandingPage() {
 
             <h2
               style={{
-                color: "#111827",
+                color: "var(--text-primary)",
                 marginBottom: "10px",
               }}
             >
               Learn & Share
             </h2>
 
-            <p style={{ color: "#6b7280" }}>
+            <p
+              style={{
+                color: "var(--text-muted)",
+              }}
+            >
               Connect. Exchange. Grow.
             </p>
           </div>
@@ -182,14 +204,15 @@ function LandingPage() {
         id="how-it-works"
         style={{
           padding: "80px 100px",
-          background: "#ffffff",
+          background: "var(--bg-primary)",
           textAlign: "center",
+          transition: "background-color 0.3s ease",
         }}
       >
         <h2
           style={{
             fontSize: "36px",
-            color: "#111827",
+            color: "var(--text-primary)",
             marginBottom: "15px",
           }}
         >
@@ -198,7 +221,7 @@ function LandingPage() {
 
         <p
           style={{
-            color: "#6b7280",
+            color: "var(--text-muted)",
             fontSize: "17px",
             marginBottom: "50px",
           }}
@@ -242,14 +265,15 @@ function LandingPage() {
         id="features"
         style={{
           padding: "80px 100px",
-          background: "#f8fafc",
+          background: "var(--bg-secondary)",
           textAlign: "center",
+          transition: "background-color 0.3s ease",
         }}
       >
         <h2
           style={{
             fontSize: "36px",
-            color: "#111827",
+            color: "var(--text-primary)",
             marginBottom: "15px",
           }}
         >
@@ -258,7 +282,7 @@ function LandingPage() {
 
         <p
           style={{
-            color: "#6b7280",
+            color: "var(--text-muted)",
             fontSize: "17px",
             marginBottom: "50px",
           }}
@@ -307,9 +331,10 @@ function LandingPage() {
       <section
         style={{
           padding: "80px 30px",
-          background: "#2563eb",
+          background: "var(--primary-color)",
           textAlign: "center",
           color: "#ffffff",
+          transition: "background-color 0.3s ease",
         }}
       >
         <h2
@@ -353,9 +378,12 @@ function LandingPage() {
 
       <footer
         style={{
-          background: "#111827",
-          color: "#ffffff",
+          background: "var(--bg-secondary)",
+          color: "var(--text-primary)",
           padding: "50px 60px 25px",
+          borderTop: "1px solid var(--border-color)",
+          transition:
+            "background-color 0.3s ease, color 0.3s ease",
         }}
       >
         <div
@@ -375,25 +403,24 @@ function LandingPage() {
               style={{
                 margin: "0 0 15px",
                 fontSize: "24px",
-                color: "#ffffff",
+                color: "var(--text-primary)",
               }}
             >
               Skill
-              <span style={{ color: "#60a5fa" }}>
+              <span style={{ color: "var(--primary-color)" }}>
                 Exchanger
               </span>
             </h2>
 
             <p
               style={{
-                color: "#9ca3af",
+                color: "var(--text-muted)",
                 lineHeight: "1.6",
                 margin: 0,
               }}
             >
-              Share your skills, learn something new,
-              and connect with people who believe in
-              learning together.
+              Share your skills, learn something new, and connect with people
+              who believe in learning together.
             </p>
           </div>
 
@@ -404,6 +431,7 @@ function LandingPage() {
               style={{
                 margin: "0 0 18px",
                 fontSize: "17px",
+                color: "var(--text-primary)",
               }}
             >
               Quick Links
@@ -420,24 +448,15 @@ function LandingPage() {
                 Home
               </a>
 
-              <a
-                href="#how-it-works"
-                style={footerLinkStyle}
-              >
+              <a href="#how-it-works" style={footerLinkStyle}>
                 How It Works
               </a>
 
-              <a
-                href="#features"
-                style={footerLinkStyle}
-              >
+              <a href="#features" style={footerLinkStyle}>
                 Features
               </a>
 
-              <Link
-                to="/register"
-                style={footerLinkStyle}
-              >
+              <Link to="/register" style={footerLinkStyle}>
                 Get Started
               </Link>
             </div>
@@ -450,6 +469,7 @@ function LandingPage() {
               style={{
                 margin: "0 0 18px",
                 fontSize: "17px",
+                color: "var(--text-primary)",
               }}
             >
               Legal
@@ -462,17 +482,11 @@ function LandingPage() {
                 gap: "12px",
               }}
             >
-              <Link
-                to="/terms"
-                style={footerLinkStyle}
-              >
+              <Link to="/terms" style={footerLinkStyle}>
                 Terms & Conditions
               </Link>
 
-              <Link
-                to="/privacy"
-                style={footerLinkStyle}
-              >
+              <Link to="/privacy" style={footerLinkStyle}>
                 Privacy Policy
               </Link>
             </div>
@@ -485,6 +499,7 @@ function LandingPage() {
               style={{
                 margin: "0 0 18px",
                 fontSize: "17px",
+                color: "var(--text-primary)",
               }}
             >
               Connect With Us
@@ -498,6 +513,7 @@ function LandingPage() {
               }}
             >
               {/* Email */}
+
               <a
                 href="mailto:priyaenjam11@gmail.com"
                 style={footerLinkStyle}
@@ -506,6 +522,7 @@ function LandingPage() {
               </a>
 
               {/* GitHub */}
+
               <a
                 href="https://github.com/pavinash-SI0104/Shnoor-skillExchanger"
                 target="_blank"
@@ -516,6 +533,7 @@ function LandingPage() {
               </a>
 
               {/* LinkedIn */}
+
               <a
                 href="https://www.linkedin.com/in/supriya-enjam-751758388"
                 target="_blank"
@@ -534,7 +552,7 @@ function LandingPage() {
           style={{
             maxWidth: "1100px",
             margin: "40px auto 20px",
-            borderTop: "1px solid #374151",
+            borderTop: "1px solid var(--border-color)",
           }}
         />
 
@@ -550,7 +568,7 @@ function LandingPage() {
           <p
             style={{
               margin: 0,
-              color: "#9ca3af",
+              color: "var(--text-muted)",
               fontSize: "14px",
             }}
           >
@@ -580,16 +598,18 @@ function InfoCard({
       style={{
         width: "280px",
         padding: "30px",
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--border-color)",
         borderRadius: "15px",
-        background: "#ffffff",
+        background: "var(--card-bg)",
+        transition:
+          "background-color 0.3s ease, border-color 0.3s ease",
       }}
     >
       <div
         style={{
           fontSize: "20px",
           fontWeight: "bold",
-          color: "#2563eb",
+          color: "var(--primary-color)",
           marginBottom: "15px",
         }}
       >
@@ -598,7 +618,7 @@ function InfoCard({
 
       <h3
         style={{
-          color: "#111827",
+          color: "var(--text-primary)",
           marginBottom: "12px",
         }}
       >
@@ -607,7 +627,7 @@ function InfoCard({
 
       <p
         style={{
-          color: "#6b7280",
+          color: "var(--text-muted)",
           lineHeight: "1.6",
         }}
       >
@@ -631,9 +651,11 @@ function FeatureCard({
       style={{
         width: "220px",
         padding: "30px 20px",
-        background: "#ffffff",
+        background: "var(--card-bg)",
         borderRadius: "15px",
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--border-color)",
+        transition:
+          "background-color 0.3s ease, border-color 0.3s ease",
       }}
     >
       <div
@@ -647,7 +669,7 @@ function FeatureCard({
 
       <h3
         style={{
-          color: "#111827",
+          color: "var(--text-primary)",
           marginBottom: "10px",
         }}
       >
@@ -656,7 +678,7 @@ function FeatureCard({
 
       <p
         style={{
-          color: "#6b7280",
+          color: "var(--text-muted)",
           lineHeight: "1.5",
         }}
       >
@@ -671,13 +693,13 @@ function FeatureCard({
 ========================== */
 
 const navLinkStyle = {
-  color: "#374151",
+  color: "var(--text-secondary)",
   textDecoration: "none",
   fontSize: "15px",
 };
 
 const registerButtonStyle = {
-  background: "#2563eb",
+  background: "var(--primary-color)",
   color: "#ffffff",
   textDecoration: "none",
   padding: "10px 20px",
@@ -686,7 +708,7 @@ const registerButtonStyle = {
 };
 
 const heroButtonStyle = {
-  background: "#2563eb",
+  background: "var(--primary-color)",
   color: "#ffffff",
   textDecoration: "none",
   padding: "14px 25px",
@@ -695,17 +717,17 @@ const heroButtonStyle = {
 };
 
 const secondaryButtonStyle = {
-  background: "#ffffff",
-  color: "#2563eb",
+  background: "var(--card-bg)",
+  color: "var(--primary-color)",
   textDecoration: "none",
   padding: "14px 25px",
   borderRadius: "8px",
   fontWeight: "bold",
-  border: "1px solid #dbeafe",
+  border: "1px solid var(--border-color)",
 };
 
 const footerLinkStyle = {
-  color: "#9ca3af",
+  color: "var(--text-muted)",
   textDecoration: "none",
   fontSize: "14px",
 };
