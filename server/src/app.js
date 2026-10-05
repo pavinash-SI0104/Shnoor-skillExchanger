@@ -4,13 +4,40 @@ const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const crypto = require("crypto");
+const multer = require("multer");
 const { generateAIMatches } = require("./services/aiMatching");
-
+const { extractResumeText, extractSkillsFromResume } = require("./services/resumeExtraction");
 const { db } = require("./config/firebase");
 const authenticateUser = require("./middleware/auth");
 
 const app = express();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+  const fileName = file.originalname.toLowerCase();
 
+  const isPdf =
+    file.mimetype === "application/pdf" ||
+    fileName.endsWith(".pdf");
+
+  const isDocx =
+    file.mimetype ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    fileName.endsWith(".docx");
+
+  if (!isPdf && !isDocx) {
+    return cb(
+      new Error("Only PDF and DOCX resumes are supported.")
+    );
+  }
+
+  cb(null, true);
+},
+
+});
 // ==============================
 // SECURITY
 // ==============================
@@ -114,10 +141,18 @@ app.post("/api/users/profile", authenticateUser, async (req, res) => {
     const existingUser = await userRef.get();
 
     if (existingUser.exists) {
+      const existingData = existingUser.data();
+      if(existingData.resumeProcessed=== undefined){
+        await userRef.update({
+          resumeProcessed: false,
+          updatedAt: new Date().toISOString(),
+        });
+        existingData.resumeProcessed = false;
+      }
       return res.status(200).json({
         success: true,
         message: "User profile already exists",
-        user: existingUser.data(),
+        user: existingData,
       });
     }
 
@@ -136,6 +171,8 @@ app.post("/api/users/profile", authenticateUser, async (req, res) => {
 
       skillsToTeach: [],
       skillsToLearn: [],
+
+      resumeProcessed: false,
 
       availability: [],
 
@@ -231,6 +268,107 @@ app.get("/api/users/skills", authenticateUser, async (req, res) => {
     });
   }
 });
+
+// ==============================
+// UPLOAD AND PROCESS RESUME
+// ==============================
+
+app.post(
+  "/api/users/resume",
+  authenticateUser,
+  upload.single("resume"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "Please upload a resume.",
+        });
+      }
+
+      const uid = req.user.uid;
+
+      const userRef = db.collection("users").doc(uid);
+      const userDoc = await userRef.get();
+
+      if (!userDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "User profile not found",
+        });
+      }
+
+      // Extract text from PDF/DOCX
+      const resumeText = await extractResumeText(req.file);
+
+      // Extract skills using Gemini
+      const extractedSkills =
+        await extractSkillsFromResume(resumeText);
+
+      const user = userDoc.data();
+      const existingSkills = user.skillsToTeach || [];
+
+      const newSkills = [];
+
+      for (const extractedSkill of extractedSkills) {
+        const skillName = extractedSkill.name?.trim();
+
+        if (!skillName) {
+          continue;
+        }
+
+        const duplicate = existingSkills.some(
+          (existingSkill) =>
+            existingSkill.name?.toLowerCase() ===
+            skillName.toLowerCase()
+        );
+
+        const alreadyAdded = newSkills.some(
+          (skill) =>
+            skill.name?.toLowerCase() ===
+            skillName.toLowerCase()
+        );
+
+        if (duplicate || alreadyAdded) {
+          continue;
+        }
+
+        newSkills.push({
+          id: crypto.randomUUID(),
+          name: skillName,
+          level: extractedSkill.level || "Intermediate",
+        });
+      }
+
+      const updatedSkills = [
+        ...existingSkills,
+        ...newSkills,
+      ];
+
+      await userRef.update({
+        skillsToTeach: updatedSkills,
+        resumeProcessed: true,
+        updatedAt: new Date().toISOString(),
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Resume processed successfully",
+        skills: newSkills,
+        skillsToTeach: updatedSkills,
+      });
+    } catch (error) {
+      console.error("Resume processing error:", error);
+
+      res.status(500).json({
+        success: false,
+        message:
+          error.message ||
+          "Failed to process resume",
+      });
+    }
+  }
+);
 
 // ==============================
 // ADD USER SKILL

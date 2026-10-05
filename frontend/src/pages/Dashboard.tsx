@@ -24,6 +24,21 @@ type SessionsResponse = {
   sessions?: Session[];
 };
 
+interface Skill {
+  id?: string;
+  name: string;
+  level?: string;
+}
+
+interface UserProfile {
+  uid: string;
+  name: string;
+  email: string;
+  resumeProcessed?: boolean;
+  skillsToTeach?: Skill[];
+  skillsToLearn?: Skill[];
+}
+
 function formatDateTime(value: string) {
   const date = new Date(value);
 
@@ -42,8 +57,46 @@ function Dashboard() {
   const { currentUser } = useAuth();
 
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [resumeError, setResumeError] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /*
+   * ======================================
+   * LOAD USER PROFILE
+   * ======================================
+   */
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await api.get("/users/profile");
+
+        setProfile(response.data.user || null);
+      } catch (err: any) {
+        console.error("Failed to load profile:", err);
+
+        setResumeError(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to load profile."
+        );
+      }
+    };
+
+    void loadProfile();
+  }, []);
+
+  /*
+   * ======================================
+   * LOAD SESSIONS
+   * ======================================
+   */
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -67,8 +120,61 @@ function Dashboard() {
       }
     };
 
-    loadSessions();
+    void loadSessions();
   }, []);
+
+  /*
+   * ======================================
+   * RESUME UPLOAD
+   * ======================================
+   */
+
+  const handleResumeUpload = async () => {
+    if (!resumeFile) {
+      setResumeError("Please select a resume first.");
+      return;
+    }
+
+    try {
+      setUploadingResume(true);
+      setResumeError("");
+
+      const formData = new FormData();
+
+      formData.append("resume", resumeFile);
+
+      const response = await api.post(
+        "/users/resume",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      setProfile((previous) => ({
+        ...(previous as UserProfile),
+        resumeProcessed: true,
+        skillsToTeach:
+          response.data?.skillsToTeach ||
+          previous?.skillsToTeach ||
+          [],
+      }));
+
+      setResumeFile(null);
+    } catch (err: any) {
+      console.error("Resume upload error:", err);
+
+      setResumeError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to process resume."
+      );
+    } finally {
+      setUploadingResume(false);
+    }
+  };
 
   const now = new Date();
 
@@ -77,7 +183,8 @@ function Dashboard() {
       .filter(
         (session) =>
           session.status === "scheduled" &&
-          new Date(session.scheduledAt).getTime() >= now.getTime()
+          new Date(session.scheduledAt).getTime() >=
+            now.getTime()
       )
       .sort(
         (a, b) =>
@@ -88,7 +195,9 @@ function Dashboard() {
 
   const completedSessions = useMemo(() => {
     return sessions
-      .filter((session) => session.status === "completed")
+      .filter(
+        (session) => session.status === "completed"
+      )
       .sort(
         (a, b) =>
           new Date(b.scheduledAt).getTime() -
@@ -98,7 +207,9 @@ function Dashboard() {
 
   const cancelledSessions = useMemo(() => {
     return sessions
-      .filter((session) => session.status === "cancelled")
+      .filter(
+        (session) => session.status === "cancelled"
+      )
       .sort(
         (a, b) =>
           new Date(b.scheduledAt).getTime() -
@@ -152,10 +263,17 @@ function Dashboard() {
 
   return (
     <div>
+      {/* ======================================
+          PAGE HEADER
+      ====================================== */}
+
       <div className="page-heading">
         <div>
           <h1>Dashboard</h1>
-          <p>Manage your skill exchange activity.</p>
+
+          <p>
+            Manage your skill exchange activity.
+          </p>
         </div>
 
         <button
@@ -167,7 +285,138 @@ function Dashboard() {
         </button>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
+      {/* ======================================
+          RESUME UPLOAD
+      ====================================== */}
+
+      {profile &&
+        profile.resumeProcessed !== true && (
+          <div className="dashboard-section">
+            <div className="section-heading-row">
+              <div>
+                <h2>Complete Your Profile</h2>
+
+                <p>
+                  Upload your resume so we can
+                  identify the skills you can teach.
+                </p>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <input
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(event) => {
+                  const file =
+                    event.target.files?.[0] || null;
+
+                  setResumeFile(file);
+                  setResumeError("");
+                }}
+              />
+
+              {resumeFile && (
+                <p>
+                  Selected:{" "}
+                  <strong>
+                    {resumeFile.name}
+                  </strong>
+                </p>
+              )}
+
+              {resumeError && (
+                <div className="error-message">
+                  {resumeError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() =>
+                  void handleResumeUpload()
+                }
+                disabled={uploadingResume}
+              >
+                {uploadingResume
+                  ? "Processing Resume..."
+                  : "Upload & Extract Skills"}
+              </button>
+            </div>
+          </div>
+        )}
+
+      {/* ======================================
+          YOUR SKILLS
+      ====================================== */}
+
+      {profile?.resumeProcessed === true && (
+        <div className="dashboard-section">
+          <div className="section-heading-row">
+            <div>
+              <h2>Your Skills</h2>
+
+              <p>
+                Skills identified from your
+                resume.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => navigate("/skills")}
+            >
+              Manage Skills
+            </button>
+          </div>
+
+          <div className="dashboard-card">
+            {profile.skillsToTeach &&
+            profile.skillsToTeach.length > 0 ? (
+              <div className="skill-tags">
+                {profile.skillsToTeach.map(
+                  (skill, index) => (
+                    <span
+                      className="skill-tag"
+                      key={
+                        skill.id ||
+                        `${skill.name}-${index}`
+                      }
+                    >
+                      {skill.name}
+                      {skill.level &&
+                        ` · ${skill.level}`}
+                    </span>
+                  )
+                )}
+              </div>
+            ) : (
+              <div className="dashboard-empty">
+                <h3>
+                  No teaching skills found
+                </h3>
+
+                <p>
+                  You can add your teaching skills
+                  manually from My Skills.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================
+          SESSION STATS
+      ====================================== */}
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -175,7 +424,12 @@ function Dashboard() {
 
           <div>
             <p>Upcoming Sessions</p>
-            <h2>{loading ? "—" : upcomingSessions.length}</h2>
+
+            <h2>
+              {loading
+                ? "—"
+                : upcomingSessions.length}
+            </h2>
           </div>
         </div>
 
@@ -184,7 +438,12 @@ function Dashboard() {
 
           <div>
             <p>Completed Sessions</p>
-            <h2>{loading ? "—" : completedSessions.length}</h2>
+
+            <h2>
+              {loading
+                ? "—"
+                : completedSessions.length}
+            </h2>
           </div>
         </div>
 
@@ -193,7 +452,12 @@ function Dashboard() {
 
           <div>
             <p>Cancelled Sessions</p>
-            <h2>{loading ? "—" : cancelledSessions.length}</h2>
+
+            <h2>
+              {loading
+                ? "—"
+                : cancelledSessions.length}
+            </h2>
           </div>
         </div>
 
@@ -202,16 +466,29 @@ function Dashboard() {
 
           <div>
             <p>Total Sessions</p>
-            <h2>{loading ? "—" : sessions.length}</h2>
+
+            <h2>
+              {loading
+                ? "—"
+                : sessions.length}
+            </h2>
           </div>
         </div>
       </div>
+
+      {/* ======================================
+          NEXT SESSION
+      ====================================== */}
 
       <div className="dashboard-section">
         <div className="section-heading-row">
           <div>
             <h2>Next Session</h2>
-            <p>Your nearest scheduled skill exchange.</p>
+
+            <p>
+              Your nearest scheduled skill
+              exchange.
+            </p>
           </div>
         </div>
 
@@ -229,17 +506,22 @@ function Dashboard() {
               <h3>{nextSession.skillName}</h3>
 
               <p className="session-date-text">
-                {formatDateTime(nextSession.scheduledAt)}
+                {formatDateTime(
+                  nextSession.scheduledAt
+                )}
               </p>
 
               <div className="next-session-details">
                 <span>
-                  <strong>Role:</strong> {getRole(nextSession)}
+                  <strong>Role:</strong>{" "}
+                  {getRole(nextSession)}
                 </span>
 
                 <span>
                   <strong>With:</strong>{" "}
-                  {getOtherParticipant(nextSession)}
+                  {getOtherParticipant(
+                    nextSession
+                  )}
                 </span>
 
                 <span>
@@ -273,7 +555,8 @@ function Dashboard() {
               ) : (
                 <p className="session-detail-note">
                   <strong>Location:</strong>{" "}
-                  {nextSession.location || "Not provided"}
+                  {nextSession.location ||
+                    "Not provided"}
                 </p>
               )}
             </div>
@@ -281,7 +564,9 @@ function Dashboard() {
             <button
               type="button"
               className="secondary-button"
-              onClick={() => navigate("/sessions")}
+              onClick={() =>
+                navigate("/sessions")
+              }
             >
               View Details
             </button>
@@ -291,14 +576,16 @@ function Dashboard() {
             <h3>No upcoming sessions</h3>
 
             <p>
-              Schedule a session from one of your accepted
-              exchange requests.
+              Schedule a session from one of your
+              accepted exchange requests.
             </p>
 
             <button
               type="button"
               className="primary-button"
-              onClick={() => navigate("/sessions")}
+              onClick={() =>
+                navigate("/sessions")
+              }
             >
               Go to Sessions
             </button>
@@ -306,11 +593,19 @@ function Dashboard() {
         )}
       </div>
 
+      {/* ======================================
+          SESSION HISTORY
+      ====================================== */}
+
       <div className="dashboard-section">
         <div className="section-heading-row">
           <div>
             <h2>Session History</h2>
-            <p>Your recent completed and cancelled sessions.</p>
+
+            <p>
+              Your recent completed and cancelled
+              sessions.
+            </p>
           </div>
 
           <button
@@ -331,7 +626,8 @@ function Dashboard() {
             <h3>No session history</h3>
 
             <p>
-              Completed and cancelled sessions will appear here.
+              Completed and cancelled sessions will
+              appear here.
             </p>
           </div>
         ) : (
@@ -352,10 +648,14 @@ function Dashboard() {
                     {session.status}
                   </span>
 
-                  <h3>{session.skillName}</h3>
+                  <h3>
+                    {session.skillName}
+                  </h3>
 
                   <p>
-                    {formatDateTime(session.scheduledAt)}
+                    {formatDateTime(
+                      session.scheduledAt
+                    )}
                   </p>
 
                   <p>
@@ -368,10 +668,16 @@ function Dashboard() {
 
                 <div className="session-history-participant">
                   <span>Your role</span>
-                  <strong>{getRole(session)}</strong>
+
+                  <strong>
+                    {getRole(session)}
+                  </strong>
 
                   <span>With</span>
-                  <strong>{getOtherParticipant(session)}</strong>
+
+                  <strong>
+                    {getOtherParticipant(session)}
+                  </strong>
                 </div>
               </div>
             ))}
