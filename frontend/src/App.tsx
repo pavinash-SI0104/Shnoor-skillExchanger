@@ -34,17 +34,13 @@ function App() {
         <Routes>
 
           {/* =========================
-              LANDING PAGE
-          ========================== */}
+              PUBLIC ROUTES
+          ========================= */}
 
           <Route
             path="/"
             element={<LandingPage />}
           />
-
-          {/* =========================
-              AUTHENTICATION PAGES
-          ========================== */}
 
           <Route
             path="/login"
@@ -55,10 +51,6 @@ function App() {
             path="/register"
             element={<Register />}
           />
-
-          {/* =========================
-              LEGAL PAGES
-          ========================== */}
 
           <Route
             path="/terms"
@@ -71,73 +63,62 @@ function App() {
           />
 
           {/* =========================
-              PROTECTED APPLICATION
-          ========================== */}
+              PROTECTED ROUTES
+          ========================= */}
 
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
 
-              {/* Dashboard */}
               <Route
                 path="/dashboard"
                 element={<Dashboard />}
               />
 
-              {/* My Skills */}
               <Route
                 path="/skills"
                 element={<MySkills />}
               />
 
-              {/* Discover */}
               <Route
                 path="/discover"
                 element={<Discover />}
               />
 
-              {/* Other User Profile */}
               <Route
                 path="/profile/user/:uid"
                 element={<UserProfile />}
               />
 
-              {/* My Profile */}
               <Route
                 path="/profile"
                 element={<Profile />}
               />
 
-              {/* Requests */}
               <Route
                 path="/requests"
                 element={<Requests />}
               />
 
-              {/* Matches */}
               <Route
                 path="/matches"
                 element={<Matches />}
               />
 
-              {/* Sessions */}
               <Route
                 path="/sessions"
                 element={<Sessions />}
               />
 
-              {/* Chat */}
               <Route
                 path="/chat"
                 element={<Chat />}
               />
 
-              {/* Notifications */}
               <Route
                 path="/notifications"
                 element={<Notifications />}
               />
 
-              {/* Wishlist */}
               <Route
                 path="/wishlist"
                 element={<Wishlist />}
@@ -147,14 +128,15 @@ function App() {
           </Route>
 
           {/* =========================
-              UNKNOWN URL
-          ========================== */}
+              UNKNOWN ROUTES
+              Return to Landing Page
+          ========================= */}
 
           <Route
             path="*"
             element={
               <Navigate
-                to="/dashboard"
+                to="/"
                 replace
               />
             }

@@ -11,75 +11,50 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 function LandingPage() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "var(--bg-primary)",
-        color: "var(--text-primary)",
-        fontFamily: "Arial, sans-serif",
-        transition: "background-color 0.3s ease, color 0.3s ease",
-      }}
-    >
+    <div className="landing-page">
       {/* =========================
           NAVBAR
       ========================== */}
 
       <nav
-        className="animate-fade-down"
-        style={{
-          height: "70px",
-          background: "var(--card-bg)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 60px",
-          borderBottom: "1px solid var(--border-color)",
-          transition:
-            "background-color 0.3s ease, border-color 0.3s ease",
-        }}
+        className="landing-navbar animate-fade-down"
       >
-        {/* Logo */}
-
-        <div
-          style={{
-            fontSize: "24px",
-            fontWeight: "bold",
-            color: "var(--primary-color)",
-          }}
-        >
-          Skill Exchanger
+        <div className="landing-logo">
+          Skill <span>Exchanger</span>
         </div>
 
-        {/* Navigation Links */}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "30px",
-          }}
-        >
-          <a href="#home" style={navLinkStyle}>
+        <div className="landing-nav-links">
+          <a
+            href="#home"
+            className="landing-nav-link"
+          >
             Home
           </a>
 
-          <a href="#how-it-works" style={navLinkStyle}>
+          <a
+            href="#how-it-works"
+            className="landing-nav-link"
+          >
             How It Works
           </a>
 
-          <a href="#features" style={navLinkStyle}>
+          <a
+            href="#features"
+            className="landing-nav-link"
+          >
             Features
           </a>
 
-          <Link to="/login" style={navLinkStyle}>
+          <Link
+            to="/login"
+            className="landing-nav-link"
+          >
             Login
           </Link>
 
-
           <Link
             to="/register"
-            className="animate-button"
-            style={registerButtonStyle}
+            className="landing-nav-button animate-button"
           >
             Get Started
           </Link>
@@ -92,79 +67,39 @@ function LandingPage() {
 
       <section
         id="home"
-        style={{
-          minHeight: "520px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "60px 100px",
-          background: "var(--bg-tertiary)",
-          transition: "background-color 0.3s ease",
-        }}
+        className="landing-hero"
       >
-        {/* Hero Text */}
-
         <div
-          className="animate-fade-left"
-          style={{
-            maxWidth: "600px",
-          }}
+          className="landing-hero-content animate-fade-left"
         >
-          <p
-            style={{
-              color: "var(--primary-color)",
-              fontSize: "16px",
-              fontWeight: "bold",
-              marginBottom: "15px",
-            }}
-          >
+          <p className="landing-eyebrow">
             WELCOME TO SKILL EXCHANGER
           </p>
 
-          <h1
-            style={{
-              fontSize: "52px",
-              lineHeight: "1.1",
-              color: "var(--text-primary)",
-              margin: "0 0 20px",
-            }}
-          >
+          <h1 className="landing-hero-title">
             Share Your Skills.
             <br />
-            Learn Something New.
+            <span>Learn Something New.</span>
           </h1>
 
-          <p
-            style={{
-              fontSize: "18px",
-              lineHeight: "1.7",
-              color: "var(--text-secondary)",
-              marginBottom: "30px",
-            }}
-          >
-            Connect with people, exchange knowledge, and learn new skills.
-            Skill Exchanger helps you find the right people to learn from and
-            share what you know.
+          <p className="landing-hero-description">
+            Connect with people, exchange knowledge,
+            and learn new skills. Skill Exchanger
+            helps you find the right people to learn
+            from and share what you know.
           </p>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "15px",
-            }}
-          >
+          <div className="landing-hero-actions">
             <Link
               to="/register"
-              className="animate-button"
-              style={heroButtonStyle}
+              className="landing-primary-button animate-button"
             >
               Get Started
             </Link>
 
             <a
               href="#how-it-works"
-              className="animate-button"
-              style={secondaryButtonStyle}
+              className="landing-secondary-button animate-button"
             >
               Learn More
             </a>
@@ -174,49 +109,18 @@ function LandingPage() {
         {/* Hero Visual */}
 
         <div
-          className="hero-visual-animation"
-          style={{
-            width: "400px",
-            height: "350px",
-            background: "var(--card-bg)",
-            borderRadius: "24px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 20px 50px var(--shadow-color)",
-            border: "1px solid var(--border-color)",
-            transition:
-              "background-color 0.3s ease, border-color 0.3s ease",
-          }}
+          className="landing-hero-visual hero-visual-animation"
         >
-          <div
-            style={{
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "80px",
-                marginBottom: "15px",
-              }}
-            >
+          <div className="landing-hero-visual-content">
+            <div className="landing-hero-icon">
               🤝
             </div>
 
-            <h2
-              style={{
-                color: "var(--text-primary)",
-                marginBottom: "10px",
-              }}
-            >
-              Learn & Share
+            <h2>
+              Learn &amp; Share
             </h2>
 
-            <p
-              style={{
-                color: "var(--text-muted)",
-              }}
-            >
+            <p>
               Connect. Exchange. Grow.
             </p>
           </div>
@@ -229,42 +133,17 @@ function LandingPage() {
 
       <section
         id="how-it-works"
-        className="animate-fade-up"
-        style={{
-          padding: "80px 100px",
-          background: "var(--bg-primary)",
-          textAlign: "center",
-          transition: "background-color 0.3s ease",
-        }}
+        className="landing-section animate-fade-up"
       >
-        <h2
-          style={{
-            fontSize: "36px",
-            color: "var(--text-primary)",
-            marginBottom: "15px",
-          }}
-        >
-          How It Works
-        </h2>
+        <div className="landing-section-heading">
+          <h2>How It Works</h2>
 
-        <p
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "17px",
-            marginBottom: "50px",
-          }}
-        >
-          Exchange skills in three simple steps.
-        </p>
+          <p>
+            Exchange skills in three simple steps.
+          </p>
+        </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "30px",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="landing-info-grid">
           <InfoCard
             number="01"
             title="Add Your Skills"
@@ -291,42 +170,18 @@ function LandingPage() {
 
       <section
         id="features"
-        className="animate-fade-up"
-        style={{
-          padding: "80px 100px",
-          background: "var(--bg-secondary)",
-          textAlign: "center",
-          transition: "background-color 0.3s ease",
-        }}
+        className="landing-section landing-section-alt animate-fade-up"
       >
-        <h2
-          style={{
-            fontSize: "36px",
-            color: "var(--text-primary)",
-            marginBottom: "15px",
-          }}
-        >
-          Everything You Need
-        </h2>
+        <div className="landing-section-heading">
+          <h2>Everything You Need</h2>
 
-        <p
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "17px",
-            marginBottom: "50px",
-          }}
-        >
-          Simple tools to make skill exchange easier.
-        </p>
+          <p>
+            Simple tools to make skill exchange
+            easier.
+          </p>
+        </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "25px",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="landing-feature-grid">
           <FeatureCard
             icon="🔍"
             title="Discover"
@@ -357,47 +212,19 @@ function LandingPage() {
           CALL TO ACTION
       ========================== */}
 
-      <section
-        className="animate-fade-up"
-        style={{
-          padding: "80px 30px",
-          background: "var(--primary-color)",
-          textAlign: "center",
-          color: "#ffffff",
-          transition: "background-color 0.3s ease",
-        }}
-      >
-        <h2
-          style={{
-            fontSize: "38px",
-            marginBottom: "15px",
-          }}
-        >
+      <section className="landing-cta animate-fade-up">
+        <h2>
           Ready to Exchange Your Skills?
         </h2>
 
-        <p
-          style={{
-            fontSize: "18px",
-            marginBottom: "30px",
-            opacity: 0.9,
-          }}
-        >
-          Join the community and start learning from others.
+        <p>
+          Join the community and start learning
+          from others.
         </p>
 
         <Link
           to="/register"
-          className="animate-button"
-          style={{
-            display: "inline-block",
-            padding: "14px 30px",
-            background: "#ffffff",
-            color: "#2563eb",
-            textDecoration: "none",
-            borderRadius: "8px",
-            fontWeight: "bold",
-          }}
+          className="landing-cta-button animate-button"
         >
           Create Your Account
         </Link>
@@ -407,96 +234,54 @@ function LandingPage() {
           FOOTER
       ========================== */}
 
-      <footer
-        className="animate-fade-up"
-        style={{
-          background: "var(--bg-secondary)",
-          color: "var(--text-primary)",
-          padding: "50px 60px 25px",
-          borderTop: "1px solid var(--border-color)",
-          transition:
-            "background-color 0.3s ease, color 0.3s ease",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "50px",
-            flexWrap: "wrap",
-          }}
-        >
+      <footer className="landing-footer animate-fade-up">
+        <div className="landing-footer-grid">
           {/* BRAND */}
 
-          <div
-            style={{
-              maxWidth: "350px",
-            }}
-          >
-            <h2
-              style={{
-                margin: "0 0 15px",
-                fontSize: "24px",
-                color: "var(--text-primary)",
-              }}
-            >
+          <div className="landing-footer-brand">
+            <h2>
               Skill
-              <span
-                style={{
-                  color: "var(--primary-color)",
-                }}
-              >
-                Exchanger
-              </span>
+              <span>Exchanger</span>
             </h2>
 
-            <p
-              style={{
-                color: "var(--text-muted)",
-                lineHeight: "1.6",
-                margin: 0,
-              }}
-            >
-              Share your skills, learn something new, and connect with people
-              who believe in learning together.
+            <p>
+              Share your skills, learn something new,
+              and connect with people who believe in
+              learning together.
             </p>
           </div>
 
           {/* QUICK LINKS */}
 
-          <div>
-            <h3
-              style={{
-                margin: "0 0 18px",
-                fontSize: "17px",
-                color: "var(--text-primary)",
-              }}
-            >
-              Quick Links
-            </h3>
+          <div className="landing-footer-column">
+            <h3>Quick Links</h3>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <a href="#home" style={footerLinkStyle}>
+            <div className="landing-footer-links">
+              <a
+                href="#home"
+                className="landing-footer-link"
+              >
                 Home
               </a>
 
-              <a href="#how-it-works" style={footerLinkStyle}>
+              <a
+                href="#how-it-works"
+                className="landing-footer-link"
+              >
                 How It Works
               </a>
 
-              <a href="#features" style={footerLinkStyle}>
+              <a
+                href="#features"
+                className="landing-footer-link"
+              >
                 Features
               </a>
 
-              <Link to="/register" style={footerLinkStyle}>
+              <Link
+                to="/register"
+                className="landing-footer-link"
+              >
                 Get Started
               </Link>
             </div>
@@ -504,29 +289,21 @@ function LandingPage() {
 
           {/* LEGAL */}
 
-          <div>
-            <h3
-              style={{
-                margin: "0 0 18px",
-                fontSize: "17px",
-                color: "var(--text-primary)",
-              }}
-            >
-              Legal
-            </h3>
+          <div className="landing-footer-column">
+            <h3>Legal</h3>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <Link to="/terms" style={footerLinkStyle}>
-                Terms & Conditions
+            <div className="landing-footer-links">
+              <Link
+                to="/terms"
+                className="landing-footer-link"
+              >
+                Terms &amp; Conditions
               </Link>
 
-              <Link to="/privacy" style={footerLinkStyle}>
+              <Link
+                to="/privacy"
+                className="landing-footer-link"
+              >
                 Privacy Policy
               </Link>
             </div>
@@ -534,38 +311,18 @@ function LandingPage() {
 
           {/* CONNECT WITH US */}
 
-          <div>
-            <h3
-              style={{
-                margin: "0 0 18px",
-                fontSize: "17px",
-                color: "var(--text-primary)",
-              }}
-            >
-              Connect With Us
-            </h3>
+          <div className="landing-footer-column">
+            <h3>Connect With Us</h3>
 
-            {/* ONLY ICONS */}
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "18px",
-              }}
-            >
-              {/* Email */}
-
+            <div className="landing-social-links">
               <a
                 href="mailto:priyaenjam11@gmail.com"
                 aria-label="Email"
                 title="Email"
-                style={socialIconStyle}
+                className="landing-social-link"
               >
                 <FontAwesomeIcon icon={faEnvelope} />
               </a>
-
-              {/* GitHub */}
 
               <a
                 href="https://github.com/pavinash-SI0104/Shnoor-skillExchanger"
@@ -573,12 +330,10 @@ function LandingPage() {
                 rel="noopener noreferrer"
                 aria-label="GitHub"
                 title="GitHub"
-                style={socialIconStyle}
+                className="landing-social-link"
               >
                 <FontAwesomeIcon icon={faGithub} />
               </a>
-
-              {/* LinkedIn */}
 
               <a
                 href="https://www.linkedin.com/in/supriya-enjam-751758388"
@@ -586,7 +341,7 @@ function LandingPage() {
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"
                 title="LinkedIn"
-                style={socialIconStyle}
+                className="landing-social-link"
               >
                 <FontAwesomeIcon icon={faLinkedin} />
               </a>
@@ -594,34 +349,10 @@ function LandingPage() {
           </div>
         </div>
 
-        {/* DIVIDER */}
+        <div className="landing-footer-divider" />
 
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "40px auto 20px",
-            borderTop: "1px solid var(--border-color)",
-          }}
-        />
-
-        {/* COPYRIGHT */}
-
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            textAlign: "center",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              color: "var(--text-muted)",
-              fontSize: "14px",
-            }}
-          >
-            © 2026 Skill Exchanger. All rights reserved.
-          </p>
+        <div className="landing-footer-copyright">
+          © 2026 Skill Exchanger. All rights reserved.
         </div>
       </footer>
     </div>
@@ -642,46 +373,14 @@ function InfoCard({
   description: string;
 }) {
   return (
-    <div
-      className="animate-card"
-      style={{
-        width: "280px",
-        padding: "30px",
-        border: "1px solid var(--border-color)",
-        borderRadius: "15px",
-        background: "var(--card-bg)",
-        transition:
-          "background-color 0.3s ease, border-color 0.3s ease",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "20px",
-          fontWeight: "bold",
-          color: "var(--primary-color)",
-          marginBottom: "15px",
-        }}
-      >
+    <div className="landing-info-card animate-card">
+      <div className="landing-card-number">
         {number}
       </div>
 
-      <h3
-        style={{
-          color: "var(--text-primary)",
-          marginBottom: "12px",
-        }}
-      >
-        {title}
-      </h3>
+      <h3>{title}</h3>
 
-      <p
-        style={{
-          color: "var(--text-muted)",
-          lineHeight: "1.6",
-        }}
-      >
-        {description}
-      </p>
+      <p>{description}</p>
     </div>
   );
 }
@@ -696,108 +395,16 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div
-      className="animate-card"
-      style={{
-        width: "220px",
-        padding: "30px 20px",
-        background: "var(--card-bg)",
-        borderRadius: "15px",
-        border: "1px solid var(--border-color)",
-        transition:
-          "background-color 0.3s ease, border-color 0.3s ease",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "40px",
-          marginBottom: "15px",
-        }}
-      >
+    <div className="landing-feature-card animate-card">
+      <div className="landing-feature-icon">
         {icon}
       </div>
 
-      <h3
-        style={{
-          color: "var(--text-primary)",
-          marginBottom: "10px",
-        }}
-      >
-        {title}
-      </h3>
+      <h3>{title}</h3>
 
-      <p
-        style={{
-          color: "var(--text-muted)",
-          lineHeight: "1.5",
-        }}
-      >
-        {description}
-      </p>
+      <p>{description}</p>
     </div>
   );
 }
-
-/* =========================
-   STYLES
-========================== */
-
-const navLinkStyle = {
-  color: "var(--text-secondary)",
-  textDecoration: "none",
-  fontSize: "15px",
-};
-
-const registerButtonStyle = {
-  background: "var(--primary-color)",
-  color: "#ffffff",
-  textDecoration: "none",
-  padding: "10px 20px",
-  borderRadius: "7px",
-  fontWeight: "bold",
-};
-
-const heroButtonStyle = {
-  background: "var(--primary-color)",
-  color: "#ffffff",
-  textDecoration: "none",
-  padding: "14px 25px",
-  borderRadius: "8px",
-  fontWeight: "bold",
-};
-
-const secondaryButtonStyle = {
-  background: "var(--card-bg)",
-  color: "var(--primary-color)",
-  textDecoration: "none",
-  padding: "14px 25px",
-  borderRadius: "8px",
-  fontWeight: "bold",
-  border: "1px solid var(--border-color)",
-};
-
-const footerLinkStyle = {
-  color: "var(--text-muted)",
-  textDecoration: "none",
-  fontSize: "14px",
-};
-
-/* Social media icon style */
-
-const socialIconStyle = {
-  width: "42px",
-  height: "42px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "50%",
-  background: "var(--card-bg)",
-  color: "var(--text-primary)",
-  border: "1px solid var(--border-color)",
-  textDecoration: "none",
-  fontSize: "20px",
-  transition:
-    "transform 0.2s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease",
-};
 
 export default LandingPage;
