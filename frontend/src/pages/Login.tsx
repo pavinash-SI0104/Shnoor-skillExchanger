@@ -15,30 +15,33 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { auth } from "../config/firebase";
+import api from "../api/api";
 
 function Login() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] =
+    useState("");
 
-  // Login loading state
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  // Forgot password loading state
   const [resetLoading, setResetLoading] =
     useState(false);
 
-  // Show / hide password
   const [showPassword, setShowPassword] =
     useState(false);
 
-  // Messages
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
+
   const [resetMessage, setResetMessage] =
     useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
-  const googleProvider = new GoogleAuthProvider();
+
+  const googleProvider =
+    new GoogleAuthProvider();
 
   const redirectTo =
     (
@@ -69,7 +72,50 @@ function Login() {
   }, []);
 
   // =========================
-  // LOGIN
+  // DETERMINE USER DESTINATION
+  // =========================
+
+  const redirectAfterLogin =
+    async () => {
+      try {
+        const response =
+          await api.get(
+            "/admin/overview"
+          );
+
+        if (
+          response.data?.success
+        ) {
+          navigate("/admin", {
+            replace: true,
+          });
+
+          return;
+        }
+      } catch (err: any) {
+        const status =
+          err?.response?.status;
+
+        if (status !== 403) {
+          console.error(
+            "Admin role check error:",
+            err
+          );
+        }
+      }
+
+      navigate(
+        redirectTo === "/admin"
+          ? "/dashboard"
+          : redirectTo,
+        {
+          replace: true,
+        }
+      );
+    };
+
+  // =========================
+  // EMAIL LOGIN
   // =========================
 
   const handleSubmit = async (
@@ -89,9 +135,7 @@ function Login() {
         password
       );
 
-      navigate(redirectTo, {
-        replace: true,
-      });
+      await redirectAfterLogin();
     } catch (err: unknown) {
       const code =
         typeof err === "object" &&
@@ -101,9 +145,12 @@ function Login() {
           : "";
 
       if (
-        code === "auth/invalid-credential" ||
-        code === "auth/wrong-password" ||
-        code === "auth/user-not-found"
+        code ===
+          "auth/invalid-credential" ||
+        code ===
+          "auth/wrong-password" ||
+        code ===
+          "auth/user-not-found"
       ) {
         setError(
           "Invalid email or password."
@@ -115,7 +162,8 @@ function Login() {
           "Please enter a valid email address."
         );
       } else if (
-        code === "auth/too-many-requests"
+        code ===
+        "auth/too-many-requests"
       ) {
         setError(
           "Too many attempts. Please try again later."
@@ -126,7 +174,10 @@ function Login() {
         );
       }
 
-      console.error("Login error:", err);
+      console.error(
+        "Login error:",
+        err
+      );
     } finally {
       setLoading(false);
     }
@@ -136,123 +187,128 @@ function Login() {
   // GOOGLE LOGIN
   // =========================
 
-  const handleGoogleLogin = async () => {
-    setError("");
-    setResetMessage("");
+  const handleGoogleLogin =
+    async () => {
+      setError("");
+      setResetMessage("");
 
-    try {
-      setLoading(true);
+      try {
+        setLoading(true);
 
-      await signInWithPopup(
-        auth,
-        googleProvider
-      );
-
-      navigate(redirectTo, {
-        replace: true,
-      });
-    } catch (err: unknown) {
-      const code =
-        typeof err === "object" &&
-        err !== null &&
-        "code" in err
-          ? String(err.code)
-          : "";
-
-      if (
-        code ===
-        "auth/popup-closed-by-user"
-      ) {
-        setError(
-          "Google login was cancelled."
+        await signInWithPopup(
+          auth,
+          googleProvider
         );
-      } else if (
-        code === "auth/popup-blocked"
-      ) {
-        setError(
-          "Google login popup was blocked. Please allow popups and try again."
+
+        await redirectAfterLogin();
+      } catch (err: unknown) {
+        const code =
+          typeof err === "object" &&
+          err !== null &&
+          "code" in err
+            ? String(err.code)
+            : "";
+
+        if (
+          code ===
+          "auth/popup-closed-by-user"
+        ) {
+          setError(
+            "Google login was cancelled."
+          );
+        } else if (
+          code ===
+          "auth/popup-blocked"
+        ) {
+          setError(
+            "Google login popup was blocked. Please allow popups and try again."
+          );
+        } else {
+          setError(
+            "Google login failed. Please try again."
+          );
+        }
+
+        console.error(
+          "Google login error:",
+          err
         );
-      } else {
-        setError(
-          "Google login failed. Please try again."
-        );
+      } finally {
+        setLoading(false);
       }
-
-      console.error(
-        "Google login error:",
-        err
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   // =========================
   // FORGOT PASSWORD
   // =========================
 
-  const handleForgotPassword = async () => {
-    setError("");
-    setResetMessage("");
+  const handleForgotPassword =
+    async () => {
+      setError("");
+      setResetMessage("");
 
-    if (!email.trim()) {
-      setError(
-        "Please enter your email address first."
-      );
-      return;
-    }
-
-    try {
-      setResetLoading(true);
-
-      await sendPasswordResetEmail(
-        auth,
-        email.trim()
-      );
-
-      setResetMessage(
-        "Password reset email sent. Please check your inbox."
-      );
-    } catch (err: unknown) {
-      const code =
-        typeof err === "object" &&
-        err !== null &&
-        "code" in err
-          ? String(err.code)
-          : "";
-
-      if (
-        code === "auth/invalid-email"
-      ) {
+      if (!email.trim()) {
         setError(
-          "Please enter a valid email address."
+          "Please enter your email address first."
         );
-      } else if (
-        code === "auth/user-not-found"
-      ) {
-        setError(
-          "No account found with this email address."
-        );
-      } else if (
-        code === "auth/too-many-requests"
-      ) {
-        setError(
-          "Too many requests. Please try again later."
-        );
-      } else {
-        setError(
-          "Unable to send password reset email. Please try again."
-        );
+
+        return;
       }
 
-      console.error(
-        "Password reset error:",
-        err
-      );
-    } finally {
-      setResetLoading(false);
-    }
-  };
+      try {
+        setResetLoading(true);
+
+        await sendPasswordResetEmail(
+          auth,
+          email.trim()
+        );
+
+        setResetMessage(
+          "Password reset email sent. Please check your inbox."
+        );
+      } catch (err: unknown) {
+        const code =
+          typeof err === "object" &&
+          err !== null &&
+          "code" in err
+            ? String(err.code)
+            : "";
+
+        if (
+          code ===
+          "auth/invalid-email"
+        ) {
+          setError(
+            "Please enter a valid email address."
+          );
+        } else if (
+          code ===
+          "auth/user-not-found"
+        ) {
+          setError(
+            "No account found with this email address."
+          );
+        } else if (
+          code ===
+          "auth/too-many-requests"
+        ) {
+          setError(
+            "Too many requests. Please try again later."
+          );
+        } else {
+          setError(
+            "Unable to send password reset email. Please try again."
+          );
+        }
+
+        console.error(
+          "Password reset error:",
+          err
+        );
+      } finally {
+        setResetLoading(false);
+      }
+    };
 
   // =========================
   // UI
@@ -276,9 +332,9 @@ function Login() {
           </h1>
 
           <p>
-            Share what you know, learn what you
-            love, and connect with people who
-            share your interests.
+            Share what you know, learn what
+            you love, and connect with people
+            who share your interests.
           </p>
         </div>
 
@@ -296,7 +352,7 @@ function Login() {
               Exchanger
             </p>
 
-            {/* ERROR / SESSION MESSAGE */}
+            {/* ERROR */}
 
             {error && (
               <div
@@ -307,7 +363,7 @@ function Login() {
               </div>
             )}
 
-            {/* SUCCESS MESSAGE */}
+            {/* SUCCESS */}
 
             {resetMessage && (
               <div
@@ -353,7 +409,8 @@ function Login() {
 
                 <div
                   style={{
-                    position: "relative",
+                    position:
+                      "relative",
                     width: "100%",
                   }}
                 >
@@ -375,13 +432,12 @@ function Login() {
                     required
                     style={{
                       width: "100%",
-                      paddingRight: "45px",
+                      paddingRight:
+                        "45px",
                       boxSizing:
                         "border-box",
                     }}
                   />
-
-                  {/* SHOW / HIDE PASSWORD */}
 
                   <button
                     type="button"
@@ -406,7 +462,8 @@ function Login() {
                       background:
                         "transparent",
                       cursor: "pointer",
-                      fontSize: "18px",
+                      fontSize:
+                        "18px",
                       padding: "4px",
                     }}
                   >
@@ -420,7 +477,8 @@ function Login() {
 
                 <div
                   style={{
-                    textAlign: "right",
+                    textAlign:
+                      "right",
                     marginTop: "8px",
                   }}
                 >
@@ -433,15 +491,18 @@ function Login() {
                       resetLoading
                     }
                     style={{
-                      background: "none",
+                      background:
+                        "none",
                       border: "none",
                       padding: 0,
-                      color: "#2563eb",
+                      color:
+                        "#2563eb",
                       cursor:
                         resetLoading
                           ? "not-allowed"
                           : "pointer",
-                      fontSize: "14px",
+                      fontSize:
+                        "14px",
                     }}
                   >
                     {resetLoading
@@ -451,7 +512,7 @@ function Login() {
                 </div>
               </div>
 
-              {/* LOGIN BUTTON */}
+              {/* LOGIN */}
 
               <button
                 type="submit"
@@ -526,4 +587,3 @@ function Login() {
 }
 
 export default Login;
-

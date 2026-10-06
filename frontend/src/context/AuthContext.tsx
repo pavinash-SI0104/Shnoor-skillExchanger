@@ -11,10 +11,13 @@ import {
   signOut,
   type User,
 } from "firebase/auth";
+
 import { auth } from "../config/firebase";
+import api from "../api/api";
 
 interface AuthContextValue {
   currentUser: User | null;
+  role: "admin" | "user" | null;
   loading: boolean;
 }
 
@@ -23,8 +26,8 @@ const AuthContext =
     undefined
   );
 
-const INACTIVITY_TIMEOUT = 
-30 * 60 * 1000; // 30 minutes
+const INACTIVITY_TIMEOUT =
+  30 * 60 * 1000; // 30 minutes
 
 export function AuthProvider({
   children,
@@ -34,17 +37,15 @@ export function AuthProvider({
   const [currentUser, setCurrentUser] =
     useState<User | null>(null);
 
+  const [role, setRole] = useState<
+    "admin" | "user" | null
+  >(null);
+
   const [loading, setLoading] =
     useState(true);
 
   const inactivityTimer =
     useRef<number | null>(null);
-
-  /*
-   * ==========================================
-   * CLEAR INACTIVITY TIMER
-   * ==========================================
-   */
 
   const clearInactivityTimer = () => {
     if (
@@ -58,12 +59,6 @@ export function AuthProvider({
     }
   };
 
-  /*
-   * ==========================================
-   * LOGOUT AFTER INACTIVITY
-   * ==========================================
-   */
-
   const startInactivityTimer = () => {
     clearInactivityTimer();
 
@@ -74,6 +69,7 @@ export function AuthProvider({
             "session-expired",
             "true"
           );
+
           await signOut(auth);
         } catch (error) {
           console.error(
@@ -84,12 +80,6 @@ export function AuthProvider({
       }, INACTIVITY_TIMEOUT);
   };
 
-  /*
-   * ==========================================
-   * RESET TIMER ON USER ACTIVITY
-   * ==========================================
-   */
-
   const resetInactivityTimer = () => {
     if (!auth.currentUser) {
       return;
@@ -98,24 +88,37 @@ export function AuthProvider({
     startInactivityTimer();
   };
 
-  /*
-   * ==========================================
-   * AUTH STATE
-   * ==========================================
-   */
-
   useEffect(() => {
     const unsubscribe =
       onAuthStateChanged(
         auth,
-        (user) => {
+        async (user) => {
           setCurrentUser(user);
-          setLoading(false);
 
-          if (user) {
-            startInactivityTimer();
-          } else {
+          if (!user) {
+            setRole(null);
+            setLoading(false);
             clearInactivityTimer();
+            return;
+          }
+
+          startInactivityTimer();
+
+          /*
+           * Determine the account role through
+           * the protected admin endpoint.
+           *
+           * Successful request = admin.
+           * 403 = normal user.
+           */
+          try {
+            await api.get("/admin/overview");
+
+            setRole("admin");
+          } catch (error: any) {
+            setRole("user");
+          } finally {
+            setLoading(false);
           }
         }
       );
@@ -125,12 +128,6 @@ export function AuthProvider({
       clearInactivityTimer();
     };
   }, []);
-
-  /*
-   * ==========================================
-   * USER ACTIVITY LISTENERS
-   * ==========================================
-   */
 
   useEffect(() => {
     if (!currentUser) {
@@ -167,16 +164,11 @@ export function AuthProvider({
     };
   }, [currentUser]);
 
-  /*
-   * ==========================================
-   * AUTH PROVIDER
-   * ==========================================
-   */
-
   return (
     <AuthContext.Provider
       value={{
         currentUser,
+        role,
         loading,
       }}
     >

@@ -9,7 +9,7 @@ const { generateAIMatches } = require("./services/aiMatching");
 const { extractResumeText, extractSkillsFromResume } = require("./services/resumeExtraction");
 const { db } = require("./config/firebase");
 const authenticateUser = require("./middleware/auth");
-
+const adminRoutes = require("./Routes/adminRoutes");
 const app = express();
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -137,7 +137,6 @@ app.post("/api/users/profile", authenticateUser, async (req, res) => {
     const {
       name,
       email,
-      role,
       location,
       bio,
       photoURL,
@@ -256,8 +255,7 @@ app.post("/api/users/profile", authenticateUser, async (req, res) => {
         req.user.email ||
         "",
 
-      role:
-        role || "",
+      role: "user",
 
       photoURL:
         photoURL ||
@@ -2286,4 +2284,5 @@ app.patch(
   }
 );
 
+app.use("/api/admin", adminRoutes);
 module.exports = app;
