@@ -134,75 +134,192 @@ app.get("/api/auth/me", authenticateUser, (req, res) => {
 
 app.post("/api/users/profile", authenticateUser, async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const {
+      name,
+      email,
+      role,
+      location,
+      bio,
+      photoURL,
+    } = req.body;
+
     const uid = req.user.uid;
 
     const userRef = db.collection("users").doc(uid);
     const existingUser = await userRef.get();
 
+    /*
+     * =========================
+     * EXISTING USER
+     * =========================
+     */
+
     if (existingUser.exists) {
-      const existingData = existingUser.data();
-      if(existingData.resumeProcessed=== undefined){
-        await userRef.update({
-          resumeProcessed: false,
-          updatedAt: new Date().toISOString(),
-        });
-        existingData.resumeProcessed = false;
+      const existingData = existingUser.data() || {};
+
+      const updatedData = {
+        name:
+          name !== undefined
+            ? name
+            : existingData.name || "",
+
+        email:
+          email !== undefined
+            ? email
+            : existingData.email ||
+              req.user.email ||
+              "",
+
+        role:
+          role !== undefined
+            ? role
+            : existingData.role || "",
+
+        location:
+          location !== undefined
+            ? (
+                typeof location === "string"
+                  ? {
+                      type: "online",
+                      city: location,
+                    }
+                  : location
+              )
+            : existingData.location || {
+                type: "online",
+                city: "",
+              },
+
+        bio:
+          bio !== undefined
+            ? bio
+            : existingData.bio || "",
+
+        /*
+         * IMPORTANT:
+         * Save the profile picture URL against
+         * this user's Firebase UID.
+         */
+        photoURL:
+          photoURL !== undefined
+            ? photoURL
+            : existingData.photoURL ||
+              req.user.picture ||
+              "",
+
+        updatedAt: new Date().toISOString(),
+      };
+
+      /*
+       * Preserve existing resumeProcessed value.
+       */
+
+      if (
+        existingData.resumeProcessed ===
+        undefined
+      ) {
+        updatedData.resumeProcessed = false;
       }
+
+      await userRef.update(updatedData);
+
+      const updatedUser = {
+        ...existingData,
+        ...updatedData,
+      };
+
       return res.status(200).json({
         success: true,
-        message: "User profile already exists",
-        user: existingData,
+        message: "User profile updated successfully",
+        user: updatedUser,
       });
     }
+
+    /*
+     * =========================
+     * NEW USER
+     * =========================
+     */
 
     const now = new Date().toISOString();
 
     const userProfile = {
       uid,
-      name: name || req.user.name || "",
-      email: email || req.user.email || "",
-      photoURL: req.user.picture || "",
 
-      bio: "",
+      name:
+        name ||
+        req.user.name ||
+        "",
+
+      email:
+        email ||
+        req.user.email ||
+        "",
+
+      role:
+        role || "",
+
+      photoURL:
+        photoURL ||
+        req.user.picture ||
+        "",
+
+      bio:
+        bio || "",
 
       interests: [],
+
       expertiseLevel: "",
 
       skillsToTeach: [],
+
       skillsToLearn: [],
 
       resumeProcessed: false,
 
       availability: [],
 
-      location: {
-        type: "online",
-        city: "",
-      },
+      location:
+        typeof location === "string"
+          ? {
+              type: "online",
+              city: location,
+            }
+          : location || {
+              type: "online",
+              city: "",
+            },
 
       isActive: true,
 
       createdAt: now,
+
       updatedAt: now,
     };
 
     await userRef.set(userProfile);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "User profile created successfully",
+      message:
+        "User profile created successfully",
       user: userProfile,
     });
   } catch (error) {
-    console.error("Create profile error:", error);
+    console.error(
+      "Profile save error:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to create user profile",
+      message:
+        "Failed to save user profile",
     });
   }
 });
+
+
 
 // ==============================
 // GET CURRENT USER PROFILE

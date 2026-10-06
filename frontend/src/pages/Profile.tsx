@@ -39,7 +39,6 @@ function Profile() {
   const [bio, setBio] = useState("");
   const [photoURL, setPhotoURL] = useState("");
 
-  // Profile picture
   const [selectedPhoto, setSelectedPhoto] =
     useState<File | null>(null);
 
@@ -54,12 +53,21 @@ function Profile() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  /*
+   * =========================
+   * PROFILE PHOTO STORAGE KEY
+   * =========================
+   */
+
+  const getPhotoStorageKey = (uid: string) =>
+    `skill-exchanger-profile-photo-${uid}`;
+
   // =========================
   // LOAD PROFILE
   // =========================
 
   useEffect(() => {
-    loadProfile();
+    void loadProfile();
   }, []);
 
   const loadProfile = async () => {
@@ -76,7 +84,6 @@ function Profile() {
         return;
       }
 
-      // Load profile
       const profileResponse = await api.get(
         "/users/profile"
       );
@@ -106,17 +113,31 @@ function Profile() {
 
       setBio(profile.bio || "");
 
-      setPhotoURL(
-        profile.photoURL ||
-          firebaseUser.photoURL ||
-          ""
-      );
+      /*
+       * Prefer the locally persisted profile photo.
+       * Fall back to the backend/Firebase photo.
+       */
 
-      // Reset temporary photo preview
+      const localPhoto =
+        localStorage.getItem(
+          getPhotoStorageKey(firebaseUser.uid)
+        );
+
+      const savedPhoto =
+        localPhoto ||
+        profile.photoURL ||
+        firebaseUser.photoURL ||
+        "";
+
+      setPhotoURL(savedPhoto);
       setPhotoPreview("");
+
       setSelectedPhoto(null);
 
-      // Load skills
+      // =========================
+      // LOAD SKILLS
+      // =========================
+
       const skillsResponse = await api.get(
         "/users/skills"
       );
@@ -174,7 +195,6 @@ function Profile() {
       return;
     }
 
-    // Check file type
     if (!file.type.startsWith("image/")) {
       setError(
         "Please select a valid image file."
@@ -182,7 +202,6 @@ function Profile() {
       return;
     }
 
-    // Check file size - 5 MB maximum
     if (file.size > 5 * 1024 * 1024) {
       setError(
         "Profile picture must be less than 5 MB."
@@ -190,14 +209,51 @@ function Profile() {
       return;
     }
 
+    const firebaseUser = auth.currentUser;
+
+    if (!firebaseUser) {
+      setError("Please log in first.");
+      return;
+    }
+
     setError("");
     setSelectedPhoto(file);
 
-    // Create preview
-    const previewURL =
-      URL.createObjectURL(file);
+    /*
+     * Convert the image into a data URL.
+     * Unlike URL.createObjectURL(), a data URL
+     * can be stored in localStorage and survives
+     * page refreshes.
+     */
 
-    setPhotoPreview(previewURL);
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = reader.result;
+
+      if (typeof result !== "string") {
+        setError(
+          "Failed to preview the selected image."
+        );
+        return;
+      }
+
+      setPhotoPreview(result);
+      setPhotoURL(result);
+
+      localStorage.setItem(
+        getPhotoStorageKey(firebaseUser.uid),
+        result
+      );
+    };
+
+    reader.onerror = () => {
+      setError(
+        "Failed to read the selected image."
+      );
+    };
+
+    reader.readAsDataURL(file);
   };
 
   // =========================
@@ -224,12 +280,8 @@ function Profile() {
       }
 
       /*
-       * NOTE:
-       * selectedPhoto is currently used
-       * for preview only.
-       *
-       * Permanent photo upload will be
-       * connected separately.
+       * The photoURL now contains the persisted
+       * local image when a profile picture exists.
        */
 
       const profileData: UserProfile = {
@@ -239,7 +291,10 @@ function Profile() {
         role: role.trim(),
         location: location.trim(),
         bio: bio.trim(),
-        photoURL: photoURL,
+        photoURL:
+          photoPreview ||
+          photoURL ||
+          "",
       };
 
       // Update Firebase display name
@@ -252,11 +307,32 @@ function Profile() {
         });
       }
 
-      // Save profile in backend / Firestore
+      /*
+       * Keep the existing profile API call.
+       */
+
       await api.post(
         "/users/profile",
         profileData
       );
+
+      /*
+       * Keep the local photo persisted.
+       */
+
+      if (profileData.photoURL) {
+        localStorage.setItem(
+          getPhotoStorageKey(firebaseUser.uid),
+          profileData.photoURL
+        );
+      }
+
+      setPhotoURL(
+        profileData.photoURL || ""
+      );
+
+      setPhotoPreview("");
+      setSelectedPhoto(null);
 
       setName(profileData.name);
       setEmail(profileData.email);
@@ -303,7 +379,7 @@ function Profile() {
     setSelectedPhoto(null);
     setPhotoPreview("");
 
-    loadProfile();
+    void loadProfile();
   };
 
   // =========================
@@ -425,8 +501,6 @@ function Profile() {
               textAlign: "center",
             }}
           >
-            {/* SMALL AVATAR */}
-
             <div
               className="profile-large-avatar"
               style={{
@@ -566,7 +640,6 @@ function Profile() {
         </div>
 
         <div className="profile-form-grid">
-
           {/* NAME */}
 
           <div className="form-group">
@@ -693,7 +766,6 @@ function Profile() {
       {/* SKILLS */}
 
       <div className="profile-skills-grid">
-
         {/* TEACHING SKILLS */}
 
         <div className="dashboard-card profile-section">
@@ -806,7 +878,6 @@ function Profile() {
         </div>
 
         <div className="profile-activity-grid">
-
           <div className="activity-item">
             <strong>
               {skills.length}
@@ -840,7 +911,6 @@ function Profile() {
               Reviews
             </span>
           </div>
-
         </div>
       </div>
     </div>

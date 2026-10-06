@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import ThemeToggle from "../components/ThemeToggle";
 
 import {
   faGithub,
@@ -76,9 +75,6 @@ function LandingPage() {
             Login
           </Link>
 
-          {/* Theme Toggle */}
-
-          <ThemeToggle />
 
           <Link
             to="/register"
