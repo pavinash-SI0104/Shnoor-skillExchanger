@@ -169,10 +169,7 @@ app.post("/api/users/profile", authenticateUser, async (req, res) => {
               req.user.email ||
               "",
 
-        role:
-          role !== undefined
-            ? role
-            : existingData.role || "",
+        role: existingData.role || "user",
 
         location:
           location !== undefined
