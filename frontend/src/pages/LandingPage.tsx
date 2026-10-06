@@ -12,54 +12,57 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 function LandingPage() {
   return (
     <div className="landing-page">
-      {/* =========================
-          NAVBAR
-      ========================== */}
+<nav
+  className="landing-navbar animate-fade-down"
+>
+  <div className="landing-logo">
+    Skill <span>Exchanger</span>
+  </div>
 
-      <nav
-        className="landing-navbar animate-fade-down"
-      >
-        <div className="landing-logo">
-          Skill <span>Exchanger</span>
-        </div>
+  <div className="landing-nav-links">
+    <a
+      href="#home"
+      className="landing-nav-link"
+    >
+      Home
+    </a>
 
-        <div className="landing-nav-links">
-          <a
-            href="#home"
-            className="landing-nav-link"
-          >
-            Home
-          </a>
+    <a
+      href="#how-it-works"
+      className="landing-nav-link"
+    >
+      How It Works
+    </a>
 
-          <a
-            href="#how-it-works"
-            className="landing-nav-link"
-          >
-            How It Works
-          </a>
+    <a
+      href="#features"
+      className="landing-nav-link"
+    >
+      Features
+    </a>
 
-          <a
-            href="#features"
-            className="landing-nav-link"
-          >
-            Features
-          </a>
+    <Link
+      to="/login"
+      className="landing-nav-link"
+    >
+      Login
+    </Link>
 
-          <Link
-            to="/login"
-            className="landing-nav-link"
-          >
-            Login
-          </Link>
+    <Link
+      to="/login"
+      className="landing-admin-button"
+    >
+      Admin Login
+    </Link>
 
-          <Link
-            to="/register"
-            className="landing-nav-button animate-button"
-          >
-            Get Started
-          </Link>
-        </div>
-      </nav>
+    <Link
+      to="/register"
+      className="landing-nav-button animate-button"
+    >
+      Get Started
+    </Link>
+  </div>
+</nav>
 
       {/* =========================
           HERO SECTION

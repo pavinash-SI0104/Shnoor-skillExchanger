@@ -640,53 +640,77 @@ app.delete(
 // DISCOVER USERS
 // ==============================
 
-app.get("/api/users/discover", authenticateUser, async (req, res) => {
-  try {
-    const currentUid = req.user.uid;
+app.get(
+  "/api/users/discover",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const currentUid = req.user.uid;
 
-    const snapshot = await db.collection("users").get();
+      const snapshot = await db
+        .collection("users")
+        .get();
 
-    const users = snapshot.docs
-      .map((doc) => {
-        const user = doc.data();
+      const users = snapshot.docs
+        .map((doc) => {
+          const user = doc.data();
 
-        return {
-          uid: doc.id,
-          name: user.name || "",
-          role: user.role || "",
-          bio: user.bio || "",
-          photoURL: user.photoURL || "",
-          location: user.location || {
-            type: "online",
-            city: "",
-          },
-          expertiseLevel: user.expertiseLevel || "",
-          skillsToTeach: user.skillsToTeach || [],
-          skillsToLearn: user.skillsToLearn || [],
-        };
-      })
-      .filter((user) => user.uid !== currentUid)
-      .filter((user) => {
-        const originalUser = snapshot.docs
-          .find((doc) => doc.id === user.uid)
-          ?.data();
+          return {
+            uid: doc.id,
+            name: user.name || "",
+            role: user.role || "",
+            bio: user.bio || "",
+            photoURL: user.photoURL || "",
+            location: user.location || {
+              type: "online",
+              city: "",
+            },
+            expertiseLevel:
+              user.expertiseLevel || "",
+            skillsToTeach:
+              user.skillsToTeach || [],
+            skillsToLearn:
+              user.skillsToLearn || [],
+          };
+        })
+        .filter(
+          (user) =>
+            user.uid !== currentUid &&
+            user.role !== "admin"
+        )
+        .filter((user) => {
+          return user.role !== "admin";
+        })
+        .filter((user) => {
+          const originalUser = snapshot.docs
+            .find(
+              (doc) =>
+                doc.id === user.uid
+            )
+            ?.data();
 
-        return originalUser?.isActive !== false;
+          return (
+            originalUser?.isActive !== false
+          );
+        });
+
+      return res.status(200).json({
+        success: true,
+        users,
       });
+    } catch (error) {
+      console.error(
+        "Discover users error:",
+        error
+      );
 
-    res.status(200).json({
-      success: true,
-      users,
-    });
-  } catch (error) {
-    console.error("Discover users error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch users",
-    });
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch users",
+      });
+    }
   }
-});
+);
 
 // ==============================
 // GET PUBLIC USER PROFILE

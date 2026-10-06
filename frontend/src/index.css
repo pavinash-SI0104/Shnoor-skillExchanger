@@ -3359,7 +3359,16 @@ margin-top: 18px;
 
 .message-row {
   display: flex;
+  width: 100%;
   margin-bottom: 15px;
+}
+
+.my-message {
+  justify-content: flex-end;
+}
+
+.their-message {
+  justify-content: flex-start;
 }
 
 .message-bubble {
@@ -3367,18 +3376,18 @@ margin-top: 18px;
   padding: 11px 15px;
   border-radius: 12px;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .my-message .message-bubble {
   background: #4f46e5;
-  color: white;
+  color: #ffffff;
   border-bottom-right-radius: 3px;
 }
 
 .their-message .message-bubble {
-  background: white;
-  color: #333;
-  border: 1px solid #e5e7eb;
+  background: #4f46e5;
+  color: #ffffff;
   border-bottom-left-radius: 3px;
 }
 
@@ -3393,7 +3402,9 @@ margin-top: 18px;
   margin-top: 5px;
   font-size: 10px;
   opacity: 0.7;
+  text-align: right;
 }
+
 
 .message-input-area {
   display: flex;
@@ -4337,7 +4348,25 @@ border: 1px solid rgba(34, 197, 94, 0.22);
   border-color: rgba(165, 180, 252, 0.45);
   box-shadow: 0 12px 30px rgba(79, 70, 229, 0.28);
 }
+.landing-admin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  border: 1px solid #4f46e5;
+  border-radius: 8px;
+  color: #4f46e5;
+  background: transparent;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
 
+.landing-admin-button:hover {
+  background: #4f46e5;
+  color: #ffffff;
+}
 /* =========================
    HERO
 ========================= */
